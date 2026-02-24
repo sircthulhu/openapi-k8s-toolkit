@@ -1,5 +1,6 @@
 import React from 'react'
 import _ from 'lodash'
+import jp from 'jsonpath'
 import { parseAll, parseWithoutPartsOfUrl, parsePartsOfUrl } from '../../../utils'
 import type { TActionUnion, TEvictActionProps } from '../../../../types/ActionsDropdown'
 import type { TDeleteChildrenModalData, TDrainResponse, TEvictModalData, TParseContext } from './types'
@@ -11,19 +12,34 @@ export const parseValueIfString = (value: unknown, ctx: TParseContext) => {
   return value
 }
 
-/**
- * Resolves a multiQuery template path like "{reqs[0]['spec','jobTemplate']}" to the actual JS object.
- */
-export const resolveObjectFromTemplate = (template: string, multiQueryData: Record<string, unknown>): unknown => {
-  const match = template.match(/^\{reqs\[(\d+)\]\[((?:\s*['"][^'"]+['"]\s*,?)+)\]\}$/)
-  if (match) {
-    const reqIndex = parseInt(match[1], 10)
-    const pathKeys = Array.from(match[2].matchAll(/['"]([^'"]+)['"]/g)).map(m => m[1])
-    const reqData = multiQueryData[`req${reqIndex}`]
-    if (reqData != null) {
-      return _.get(reqData, pathKeys)
-    }
+export const resolveObjectByReqIndexAndJsonPath = ({
+  reqIndex,
+  jsonPathToObj,
+  multiQueryData,
+}: {
+  reqIndex: string
+  jsonPathToObj: string
+  multiQueryData: Record<string, unknown>
+}): Record<string, unknown> | undefined => {
+  const reqIndexNumber = Number(reqIndex)
+  if (!Number.isInteger(reqIndexNumber) || reqIndexNumber < 0) {
+    return undefined
   }
+
+  const jsonRoot = multiQueryData[`req${reqIndexNumber}`]
+  if (jsonRoot === undefined) {
+    return undefined
+  }
+
+  try {
+    const value = jp.query(jsonRoot, `$${jsonPathToObj}`)?.[0]
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return value as Record<string, unknown>
+    }
+  } catch {
+    return undefined
+  }
+
   return undefined
 }
 

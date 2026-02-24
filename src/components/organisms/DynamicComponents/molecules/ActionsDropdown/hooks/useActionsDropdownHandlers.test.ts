@@ -294,6 +294,205 @@ describe('useActionsDropdownHandlers - rollout restart', () => {
   })
 })
 
+describe('useActionsDropdownHandlers - triggerRun and rerunLast', () => {
+  it('triggerRun resolves object via reqIndex/jsonPathToObj and creates a new Job', async () => {
+    const params = {
+      ...baseParams,
+      multiQueryData: {
+        req0: {
+          metadata: { name: 'nightly' },
+          spec: {
+            jobTemplate: {
+              metadata: { namespace: 'default' },
+              spec: {
+                template: { spec: { restartPolicy: 'Never', containers: [{ name: 'main', image: 'busybox' }] } },
+              },
+            },
+          },
+        },
+      },
+    }
+
+    const triggerRunAction: TActionUnion = {
+      type: 'triggerRun',
+      props: {
+        text: 'Trigger run',
+        createEndpoint: '/api/clusters/{2}/k8s/apis/batch/v1/namespaces/default/jobs',
+        cronJobName: "{reqsJsonPath[0]['.metadata.name']['-']}",
+        reqIndex: '0',
+        jsonPathToObj: '.spec.jobTemplate',
+      },
+    }
+
+    const { result } = renderHook(() => useActionsDropdownHandlers(params))
+
+    await act(async () => {
+      result.current.handleActionClick(triggerRunAction)
+    })
+
+    expect(mockCreateNewEntry).toHaveBeenCalledTimes(1)
+    const callArg = mockCreateNewEntry.mock.calls[0][0]
+    expect(callArg.endpoint).toBe('/api/clusters/my-cluster/k8s/apis/batch/v1/namespaces/default/jobs')
+    expect(callArg.body).toEqual(
+      expect.objectContaining({
+        apiVersion: 'batch/v1',
+        kind: 'Job',
+        metadata: expect.objectContaining({
+          namespace: 'default',
+          annotations: { 'cronjob.kubernetes.io/instantiate': 'manual' },
+          name: expect.stringMatching(/^nightly-manual-/),
+        }),
+      }),
+    )
+    expect(callArg.body.spec).toEqual({
+      template: { spec: { restartPolicy: 'Never', containers: [{ name: 'main', image: 'busybox' }] } },
+    })
+  })
+
+  it('triggerRun shows error when object cannot be resolved', async () => {
+    const triggerRunAction: TActionUnion = {
+      type: 'triggerRun',
+      props: {
+        text: 'Trigger run',
+        createEndpoint: '/api/jobs',
+        cronJobName: 'nightly',
+        reqIndex: '0',
+        jsonPathToObj: '.spec.jobTemplate',
+      },
+    }
+
+    const { result } = renderHook(() => useActionsDropdownHandlers(baseParams))
+
+    await act(async () => {
+      result.current.handleActionClick(triggerRunAction)
+    })
+
+    expect(mockCreateNewEntry).not.toHaveBeenCalled()
+    expect(mockNotificationError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Trigger run failed',
+        description: 'Could not resolve job template from resource data',
+      }),
+    )
+  })
+
+  it('rerunLast resolves object via reqIndex/jsonPathToObj and creates rerun payload', async () => {
+    const params = {
+      ...baseParams,
+      multiQueryData: {
+        req0: {
+          items: [
+            {
+              metadata: {
+                name: 'daily-report',
+                namespace: 'default',
+                labels: {
+                  app: 'report',
+                  'controller-uid': 'uid-1',
+                  'job-name': 'daily-report',
+                },
+              },
+              spec: {
+                selector: { matchLabels: { 'controller-uid': 'uid-1' } },
+                manualSelector: true,
+                template: {
+                  metadata: {
+                    labels: {
+                      app: 'report',
+                      'controller-uid': 'uid-1',
+                      'job-name': 'daily-report',
+                    },
+                  },
+                  spec: { restartPolicy: 'Never', containers: [{ name: 'main', image: 'busybox' }] },
+                },
+              },
+              status: { succeeded: 1 },
+            },
+          ],
+        },
+      },
+    }
+
+    const rerunAction: TActionUnion = {
+      type: 'rerunLast',
+      props: {
+        text: 'Rerun',
+        createEndpoint: '/api/clusters/{2}/k8s/apis/batch/v1/namespaces/default/jobs',
+        sourceJobName: "{reqsJsonPath[0]['.items.0.metadata.name']['-']}",
+        reqIndex: '0',
+        jsonPathToObj: '.items.0',
+      },
+    }
+
+    const { result } = renderHook(() => useActionsDropdownHandlers(params))
+
+    act(() => {
+      result.current.handleActionClick(rerunAction)
+    })
+
+    expect(result.current.rerunModalData).toEqual(
+      expect.objectContaining({
+        createEndpoint: '/api/clusters/my-cluster/k8s/apis/batch/v1/namespaces/default/jobs',
+        sourceName: 'daily-report',
+      }),
+    )
+
+    await act(async () => {
+      result.current.handleRerunConfirm()
+    })
+
+    expect(mockCreateNewEntry).toHaveBeenCalledTimes(1)
+    expect(mockCreateNewEntry).toHaveBeenCalledWith({
+      endpoint: '/api/clusters/my-cluster/k8s/apis/batch/v1/namespaces/default/jobs',
+      body: {
+        metadata: {
+          namespace: 'default',
+          labels: { app: 'report' },
+          generateName: 'daily-report-rerun-',
+        },
+        spec: {
+          template: {
+            metadata: {
+              labels: { app: 'report' },
+            },
+            spec: {
+              restartPolicy: 'Never',
+              containers: [{ name: 'main', image: 'busybox' }],
+            },
+          },
+        },
+      },
+    })
+  })
+
+  it('rerunLast shows error when object cannot be resolved', () => {
+    const rerunAction: TActionUnion = {
+      type: 'rerunLast',
+      props: {
+        text: 'Rerun',
+        createEndpoint: '/api/jobs',
+        sourceJobName: 'missing-job',
+        reqIndex: '0',
+        jsonPathToObj: '.items.0',
+      },
+    }
+
+    const { result } = renderHook(() => useActionsDropdownHandlers(baseParams))
+
+    act(() => {
+      result.current.handleActionClick(rerunAction)
+    })
+
+    expect(mockCreateNewEntry).not.toHaveBeenCalled()
+    expect(mockNotificationError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Rerun job failed',
+        description: 'Could not resolve source job spec from resource data',
+      }),
+    )
+  })
+})
+
 describe('useActionsDropdownHandlers - evict action', () => {
   describe('evict action', () => {
     const evictAction: TActionUnion = {
