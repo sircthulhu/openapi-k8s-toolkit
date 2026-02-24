@@ -109,6 +109,23 @@ export const BlackholeForm: FC<TBlackholeFormProps> = ({
   const allValues = Form.useWatch([], form)
   const namespaceFromFormData = Form.useWatch<string>(['metadata', 'namespace'], form)
 
+  const resolvedBacklink = useMemo(() => {
+    if (!backlink || !namespaceFromFormData) return backlink
+    const tablePattern = /(\/api-table\/|\/builtin-table\/)/
+    const match = backlink.match(tablePattern)
+    if (!match || match.index == null) return backlink
+
+    const beforeTable = backlink.substring(0, match.index)
+    const tableAndAfter = backlink.substring(match.index)
+    const segments = beforeTable.split('/').filter(Boolean)
+
+    if (segments.length <= 2) {
+      return `${beforeTable}/${namespaceFromFormData}${tableAndAfter}`
+    }
+
+    return backlink
+  }, [backlink, namespaceFromFormData])
+
   const [properties, setProperties] = useState<OpenAPIV2.SchemaObject['properties']>(staticProperties)
   const [yamlValues, setYamlValues] = useState<Record<string, unknown>>()
   const debouncedSetYamlValues = useDebounceCallback(setYamlValues, 500)
@@ -254,8 +271,8 @@ export const BlackholeForm: FC<TBlackholeFormProps> = ({
               createNewEntry({ endpoint, body })
                 .then(res => {
                   console.log(res)
-                  if (backlink) {
-                    navigate(backlink)
+                  if (resolvedBacklink) {
+                    navigate(resolvedBacklink)
                   }
                 })
                 .catch(error => {
@@ -271,8 +288,8 @@ export const BlackholeForm: FC<TBlackholeFormProps> = ({
               updateEntry({ endpoint, body })
                 .then(res => {
                   console.log(res)
-                  if (backlink) {
-                    navigate(backlink)
+                  if (resolvedBacklink) {
+                    navigate(resolvedBacklink)
                   }
                 })
                 .catch(error => {
@@ -1322,6 +1339,11 @@ export const BlackholeForm: FC<TBlackholeFormProps> = ({
           }
           cancelButtonProps={{ style: { display: 'none' } }}
           centered
+          styles={{
+            header: {
+              paddingRight: '30px',
+            },
+          }}
         >
           An error has occurred: {error?.response?.data?.message}
         </Modal>
@@ -1335,6 +1357,11 @@ export const BlackholeForm: FC<TBlackholeFormProps> = ({
           title="Debug for properties"
           width="90vw"
           centered
+          styles={{
+            header: {
+              paddingRight: '30px',
+            },
+          }}
         >
           <Styled.DebugContainer $designNewLayoutHeight={designNewLayoutHeight}>
             <Suspense fallback={<div>Loading...</div>}>
