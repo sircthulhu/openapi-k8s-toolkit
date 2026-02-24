@@ -112,6 +112,11 @@ export const LabelsEditModal: FC<TLabelsEditModalProps> = ({
       width={editModalWidth || 520}
       destroyOnHidden
       centered
+      styles={{
+        header: {
+          paddingRight: '30px',
+        },
+      }}
     >
       {error && <Alert type="error" message="Error while submitting" description={error?.response?.data?.message} />}
       {modalDescriptionText && (

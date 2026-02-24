@@ -44,7 +44,8 @@ const decodeBase64 = (value: string): Uint8Array => {
 }
 
 const triggerFileDownload = (filename: string, content: Uint8Array | string) => {
-  const blob = typeof content === 'string' ? new Blob([content], { type: 'text/plain' }) : new Blob([content])
+  const blob =
+    typeof content === 'string' ? new Blob([content], { type: 'text/plain' }) : new Blob([Uint8Array.from(content)])
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -114,6 +115,11 @@ export const DownloadAsFilesModal: FC<TDownloadAsFilesModalProps> = ({
       okText="Download"
       okButtonProps={{ disabled: selectedKeys.length === 0 }}
       width={520}
+      styles={{
+        header: {
+          paddingRight: '30px',
+        },
+      }}
     >
       {isLoading && <Spin />}
       {isError && (
