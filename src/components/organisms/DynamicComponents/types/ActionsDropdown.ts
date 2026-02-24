@@ -98,7 +98,8 @@ export type TScaleActionProps = TActionBaseProps & {
 export type TTriggerRunActionProps = TActionBaseProps & {
   createEndpoint: string
   cronJobName: string
-  jobTemplate: string
+  reqIndex: string
+  jsonPathToObj: string
 }
 
 export type TDeleteChildrenActionProps = TActionBaseProps & {
@@ -108,8 +109,9 @@ export type TDeleteChildrenActionProps = TActionBaseProps & {
 
 export type TRerunLastActionProps = TActionBaseProps & {
   createEndpoint: string
-  sourceJobSpec: string
   sourceJobName: string
+  reqIndex: string
+  jsonPathToObj: string
 }
 
 export type TDrainActionProps = TActionBaseProps & {

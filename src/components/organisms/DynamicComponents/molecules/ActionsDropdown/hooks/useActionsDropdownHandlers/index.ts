@@ -17,5 +17,6 @@ export {
   buildEvictBody,
   buildEvictModalData,
   parseValueIfString,
+  resolveObjectByReqIndexAndJsonPath,
   stripMetadataForRerun,
 } from './helpers'

@@ -3,7 +3,7 @@ import { createNewEntry, patchEntryWithMergePatch, patchEntryWithReplaceOp } fro
 import { parseAll } from '../../../utils'
 import { buildEditUrl } from '../../utils'
 import type { TActionUnion } from '../../../../types/ActionsDropdown'
-import { generateDnsCompliantName, parseValueIfString, resolveObjectFromTemplate } from './helpers'
+import { generateDnsCompliantName, parseValueIfString, resolveObjectByReqIndexAndJsonPath } from './helpers'
 import type { TDeleteModalData, TNotificationCallbacks, TParseContext } from './types'
 
 export const handleEditAction = (
@@ -147,9 +147,11 @@ export const fireTriggerRunAction = (
   const createEndpointPrepared = parseAll({ text: action.props.createEndpoint, ...ctx })
   const cronJobNamePrepared = parseAll({ text: action.props.cronJobName, ...ctx })
 
-  const jobTemplateObj = resolveObjectFromTemplate(action.props.jobTemplate, multiQueryData) as
-    | Record<string, unknown>
-    | undefined
+  const jobTemplateObj = resolveObjectByReqIndexAndJsonPath({
+    reqIndex: action.props.reqIndex,
+    jsonPathToObj: action.props.jsonPathToObj,
+    multiQueryData,
+  })
 
   if (!jobTemplateObj) {
     showError('Trigger run', new Error('Could not resolve job template from resource data'))

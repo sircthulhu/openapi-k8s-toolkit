@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { createNewEntry } from 'api/forms'
 import { parseAll } from '../../../../utils'
 import type { TActionUnion } from '../../../../../types/ActionsDropdown'
-import { resolveObjectFromTemplate, stripMetadataForRerun } from '../helpers'
+import { resolveObjectByReqIndexAndJsonPath, stripMetadataForRerun } from '../helpers'
 import type { TNotificationCallbacks, TParseContext, TRerunModalData } from '../types'
 
 export const useRerunHandlers = (
@@ -17,9 +17,11 @@ export const useRerunHandlers = (
     const createEndpointPrepared = parseAll({ text: action.props.createEndpoint, ...ctx })
     const sourceJobNamePrepared = parseAll({ text: action.props.sourceJobName, ...ctx })
 
-    const sourceJobObj = resolveObjectFromTemplate(action.props.sourceJobSpec, multiQueryData) as
-      | Record<string, unknown>
-      | undefined
+    const sourceJobObj = resolveObjectByReqIndexAndJsonPath({
+      reqIndex: action.props.reqIndex,
+      jsonPathToObj: action.props.jsonPathToObj,
+      multiQueryData,
+    })
 
     if (!sourceJobObj) {
       showError('Rerun job', new Error('Could not resolve source job spec from resource data'))
