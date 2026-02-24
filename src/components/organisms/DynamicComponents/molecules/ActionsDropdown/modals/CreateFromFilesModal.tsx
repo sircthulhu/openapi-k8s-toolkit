@@ -168,6 +168,11 @@ export const CreateFromFilesModal: FC<TCreateFromFilesModalProps> = ({
       confirmLoading={isLoading}
       okButtonProps={{ disabled: !isValid }}
       width={600}
+      styles={{
+        header: {
+          paddingRight: '30px',
+        },
+      }}
     >
       <Space direction="vertical" style={{ width: '100%' }} size="middle">
         <div>

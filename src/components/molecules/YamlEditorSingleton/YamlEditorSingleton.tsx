@@ -270,6 +270,11 @@ export const YamlEditorSingleton: FC<TYamlEditorSingletonProps> = ({
           }
           cancelButtonProps={{ style: { display: 'none' } }}
           centered
+          styles={{
+            header: {
+              paddingRight: '30px',
+            },
+          }}
         >
           An error has occurred: {error?.response?.data?.message}
         </Modal>

@@ -177,8 +177,20 @@ jest.mock('./utilsErrorHandler', () => ({
 const getObjectFormItemsDraftMock = jest.fn()
 jest.mock('./utils', () => {
   const React = require('react')
+  const { Form: AntForm } = require('antd')
   return {
-    getObjectFormItemsDraft: (args: any) => getObjectFormItemsDraftMock(args),
+    getObjectFormItemsDraft: (args: any) => {
+      const original = getObjectFormItemsDraftMock(args)
+      // Render a hidden Form.Item for namespace so Form.useWatch can pick it up
+      return React.createElement(
+        React.Fragment,
+        null,
+        original,
+        args.namespaceData
+          ? React.createElement(AntForm.Item, { name: ['metadata', 'namespace'], noStyle: true })
+          : null,
+      )
+    },
   }
 })
 
@@ -1048,5 +1060,143 @@ describe('BlackholeForm', () => {
     render(<BlackholeForm {...baseProps} backlink={undefined} />)
 
     expect(screen.queryByRole('button', { name: /cancel/i })).not.toBeInTheDocument()
+  })
+
+  // -----------------------------------------------
+  // resolvedBacklink / namespace injection tests
+  // -----------------------------------------------
+
+  test('submit (create) injects namespace into api-table backlink when namespace segment is missing', async () => {
+    axiosPostMock.mockImplementation(async (url: string) => {
+      if (String(url).includes('getYamlValuesByFromValues')) {
+        return { data: 'YAML_BODY_CREATE_NS' }
+      }
+      return { data: {} }
+    })
+
+    const user = userEvent.setup()
+    render(
+      <BlackholeForm
+        {...baseProps}
+        isCreate
+        isNameSpaced={['team-a']}
+        prefillValueNamespaceOnly="team-a"
+        backlink="/ui/cluster1/api-table/apps/v1/deployments"
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /submit/i }))
+
+    await waitFor(() => {
+      expect(createNewEntryMock).toHaveBeenCalled()
+      expect(navigateMock).toHaveBeenCalledWith('/ui/cluster1/team-a/api-table/apps/v1/deployments')
+    })
+  })
+
+  test('submit (create) injects namespace into builtin-table backlink when namespace segment is missing', async () => {
+    axiosPostMock.mockImplementation(async (url: string) => {
+      if (String(url).includes('getYamlValuesByFromValues')) {
+        return { data: 'YAML_BODY_CREATE_NS' }
+      }
+      return { data: {} }
+    })
+
+    const user = userEvent.setup()
+    render(
+      <BlackholeForm
+        {...baseProps}
+        isCreate
+        isNameSpaced={['kube-system']}
+        prefillValueNamespaceOnly="kube-system"
+        backlink="/ui/cluster1/builtin-table/pods"
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /submit/i }))
+
+    await waitFor(() => {
+      expect(createNewEntryMock).toHaveBeenCalled()
+      expect(navigateMock).toHaveBeenCalledWith('/ui/cluster1/kube-system/builtin-table/pods')
+    })
+  })
+
+  test('submit does NOT modify backlink when namespace segment is already present', async () => {
+    axiosPostMock.mockImplementation(async (url: string) => {
+      if (String(url).includes('getYamlValuesByFromValues')) {
+        return { data: 'YAML_BODY_CREATE_NS' }
+      }
+      return { data: {} }
+    })
+
+    const user = userEvent.setup()
+    render(
+      <BlackholeForm
+        {...baseProps}
+        isCreate
+        isNameSpaced={['default']}
+        prefillValueNamespaceOnly="default"
+        backlink="/ui/cluster1/existing-ns/api-table/apps/v1/deployments"
+      />,
+    )
+
+    // Wait for form initialValues to propagate so Form.useWatch picks up the namespace
+    await waitFor(() => {
+      expect(axiosPostMock).toHaveBeenCalled()
+    })
+
+    await user.click(screen.getByRole('button', { name: /submit/i }))
+
+    await waitFor(() => {
+      expect(createNewEntryMock).toHaveBeenCalled()
+      expect(navigateMock).toHaveBeenCalledWith('/ui/cluster1/existing-ns/api-table/apps/v1/deployments')
+    })
+  })
+
+  test('submit does NOT modify backlink when path has no table pattern', async () => {
+    axiosPostMock.mockImplementation(async (url: string) => {
+      if (String(url).includes('getYamlValuesByFromValues')) {
+        return { data: 'YAML_BODY_CREATE_NS' }
+      }
+      return { data: {} }
+    })
+
+    const user = userEvent.setup()
+    render(
+      <BlackholeForm
+        {...baseProps}
+        isCreate
+        isNameSpaced={['default']}
+        prefillValueNamespaceOnly="default"
+        backlink="/some/other/path"
+      />,
+    )
+
+    // Wait for form initialValues to propagate so Form.useWatch picks up the namespace
+    await waitFor(() => {
+      expect(axiosPostMock).toHaveBeenCalled()
+    })
+
+    await user.click(screen.getByRole('button', { name: /submit/i }))
+
+    await waitFor(() => {
+      expect(createNewEntryMock).toHaveBeenCalled()
+      expect(navigateMock).toHaveBeenCalledWith('/some/other/path')
+    })
+  })
+
+  test('cancel button uses original backlink, not resolved', async () => {
+    const user = userEvent.setup()
+    render(
+      <BlackholeForm
+        {...baseProps}
+        isNameSpaced={['team-a']}
+        prefillValueNamespaceOnly="team-a"
+        backlink="/ui/cluster1/api-table/apps/v1/deployments"
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /cancel/i }))
+
+    expect(navigateMock).toHaveBeenCalledWith('/ui/cluster1/api-table/apps/v1/deployments')
   })
 })
