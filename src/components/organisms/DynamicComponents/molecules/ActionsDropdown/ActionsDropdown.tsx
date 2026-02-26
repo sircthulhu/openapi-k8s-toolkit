@@ -1,5 +1,5 @@
-import { FC, ReactElement } from 'react'
-import { Dropdown, Button, Spin, Tooltip } from 'antd'
+import { FC, ReactElement, useRef, useState } from 'react'
+import { ConfigProvider, Dropdown, Button, Spin, Tooltip } from 'antd'
 import { DownOutlined, MoreOutlined, WarningOutlined } from '@ant-design/icons'
 import { ConfirmModal, DeleteModal, DeleteModalMany } from 'components/atoms'
 import { TDynamicComponentsAppTypeMap } from '../../types'
@@ -10,6 +10,7 @@ import { useActionsDropdownPermissions, useActionsDropdownHandlers } from './hoo
 import { renderActionModal } from './renderActionModal'
 import { ScaleModal } from './modals/ScaleModal'
 import { CreateFromFilesModal } from './modals/CreateFromFilesModal'
+import { DEFAULT_MENU_MAX_HEIGHT_PX, getDropdownPlacement, TActionsDropdownPlacement } from './dropdownPlacement'
 import { Styled } from './styled'
 
 export const ActionsDropdown: FC<{
@@ -39,6 +40,10 @@ export const ActionsDropdown: FC<{
     replaceValues,
     multiQueryData: safeMultiQueryData,
   })
+
+  const triggerRef = useRef<HTMLSpanElement | null>(null)
+  const [dropdownPlacement, setDropdownPlacement] = useState<TActionsDropdownPlacement>('bottomLeft')
+  const [menuMaxHeightPx, setMenuMaxHeightPx] = useState(DEFAULT_MENU_MAX_HEIGHT_PX)
 
   const {
     notificationContextHolder,
@@ -98,19 +103,30 @@ export const ActionsDropdown: FC<{
 
   const menuItems = getMenuItems(visibleActions, handleActionClick, effectivePermissions)
 
+  const handleDropdownOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      return
+    }
+
+    const triggerRect = triggerRef.current?.getBoundingClientRect()
+    if (!triggerRect) {
+      return
+    }
+
+    const { placement, maxMenuHeightPx } = getDropdownPlacement({
+      triggerTop: triggerRect.top,
+      triggerBottom: triggerRect.bottom,
+      viewportHeight: window.innerHeight,
+      actionsCount: menuItems.length,
+    })
+
+    setDropdownPlacement(placement)
+    setMenuMaxHeightPx(maxMenuHeightPx)
+  }
+
   const renderButton = () => {
     if (buttonVariant === 'icon') {
-      return (
-        <Styled.IconButton
-          type="text"
-          size="small"
-          onClick={e => {
-            e.stopPropagation()
-            e.preventDefault()
-          }}
-          icon={<MoreOutlined />}
-        />
-      )
+      return <Styled.IconButton type="text" size="small" icon={<MoreOutlined />} />
     }
     return (
       <Button>
@@ -123,9 +139,30 @@ export const ActionsDropdown: FC<{
   return (
     <div style={containerStyle}>
       {notificationContextHolder}
-      <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-        {renderButton()}
-      </Dropdown>
+      <ConfigProvider
+        theme={{ components: { Dropdown: { zIndexPopup: 2000 } } }}
+        getPopupContainer={trigger => trigger?.ownerDocument?.body ?? document.body}
+      >
+        <Dropdown
+          menu={{
+            items: menuItems,
+            style: { maxHeight: menuMaxHeightPx, overflowY: 'auto' },
+          }}
+          trigger={['click']}
+          placement={dropdownPlacement}
+          autoAdjustOverflow
+          onOpenChange={handleDropdownOpenChange}
+        >
+          <span
+            ref={triggerRef}
+            onClick={e => {
+              e.stopPropagation()
+            }}
+          >
+            {renderButton()}
+          </span>
+        </Dropdown>
+      </ConfigProvider>
 
       {activeAction && renderActionModal(activeAction, { open: modalOpen, onClose: handleCloseModal })}
 
