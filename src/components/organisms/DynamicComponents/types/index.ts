@@ -13,6 +13,7 @@ import { TDefaultDivProps } from './DefaultDiv'
 import { TPartsOfUrlProps } from './partsOfUrl'
 import { TMultiQueryProps } from './multiQuery'
 import { TParsedTextProps } from './parsedText'
+import { TMappedParsedTextProps } from './MappedParsedText'
 import { TProjectInfoCardProps } from './ProjectInfoCard'
 import { TMarketplaceCardProps } from './MarketplaceCard'
 import { TContentCardProps } from './ContentCard'
@@ -63,6 +64,7 @@ export type TDynamicComponentsAppTypeMap = {
   partsOfUrl: TPartsOfUrlProps
   multiQuery: TMultiQueryProps
   parsedText: TParsedTextProps
+  MappedParsedText: TMappedParsedTextProps
   ProjectInfoCard: TProjectInfoCardProps
   MarketplaceCard: TMarketplaceCardProps
   ContentCard: TContentCardProps
