@@ -2,13 +2,33 @@
 import React, { FC } from 'react'
 import jp from 'jsonpath'
 import _ from 'lodash'
+import { Alert, Flex } from 'antd'
 import { Events as StandaloneEvents } from 'components/molecules'
+import { usePermissions } from 'hooks/usePermissions'
 import { TDynamicComponentsAppTypeMap } from '../../types'
 import { useMultiQuery } from '../../../DynamicRendererWithProviders/providers/hybridDataProvider'
 import { usePartsOfUrl } from '../../../DynamicRendererWithProviders/providers/partsOfUrlContext'
 import { useTheme } from '../../../DynamicRendererWithProviders/providers/themeContext'
 import { parseAll } from '../utils'
 import { serializeLabelsWithNoEncoding } from './utils'
+
+const extractStatusCode = (error: unknown): number | undefined => {
+  const asRecord = (value: unknown): Record<string, unknown> | undefined =>
+    typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : undefined
+  const toCode = (value: unknown): number | undefined => {
+    if (typeof value === 'number' && Number.isFinite(value)) return value
+    if (typeof value === 'string' && /^\d+$/.test(value)) return Number(value)
+    return undefined
+  }
+
+  const root = asRecord(error) || {}
+  const response = asRecord(root.response) || {}
+  const body = asRecord(root.body) || {}
+
+  return (
+    toCode(response.status) ?? toCode(root.statusCode) ?? toCode(root.status) ?? toCode(root.code) ?? toCode(body.code)
+  )
+}
 
 export const Events: FC<{ data: TDynamicComponentsAppTypeMap['Events']; children?: any }> = ({
   data,
@@ -94,9 +114,69 @@ export const Events: FC<{ data: TDynamicComponentsAppTypeMap['Events']; children
 
   const searchParams = params.toString()
   const wsUrlWithParams = `${wsUrlPrepared}${searchParams ? `?${searchParams}` : ''}`
+  const namespaceFromWsUrl = (() => {
+    try {
+      const parsedUrl = new URL(wsUrlWithParams, window.location.origin)
+      const namespace = parsedUrl.searchParams.get('namespace')
+      return namespace && namespace.length > 0 ? namespace : undefined
+    } catch {
+      return undefined
+    }
+  })()
+
+  const isPermissionCheckEnabled = Boolean(!isMultiqueryLoading && clusterPrepared)
+  const listPermission = usePermissions({
+    cluster: clusterPrepared || '',
+    namespace: namespaceFromWsUrl,
+    apiGroup: 'events.k8s.io',
+    plural: 'events',
+    verb: 'list',
+    refetchInterval: false,
+    enabler: isPermissionCheckEnabled,
+  })
+  const watchPermission = usePermissions({
+    cluster: clusterPrepared || '',
+    namespace: namespaceFromWsUrl,
+    apiGroup: 'events.k8s.io',
+    plural: 'events',
+    verb: 'watch',
+    refetchInterval: false,
+    enabler: isPermissionCheckEnabled,
+  })
 
   if (isMultiqueryLoading) {
     return <div>Loading multiquery</div>
+  }
+
+  if (isPermissionCheckEnabled && (listPermission.isPending || watchPermission.isPending)) {
+    return (
+      <Flex vertical gap={8}>
+        <Alert type="info" message="Checking permissions for events stream..." showIcon />
+      </Flex>
+    )
+  }
+
+  if (isPermissionCheckEnabled && (listPermission.isError || watchPermission.isError)) {
+    const statusCode = extractStatusCode(listPermission.error) ?? extractStatusCode(watchPermission.error)
+    const message = statusCode
+      ? `Failed to check permissions for events stream (${statusCode})`
+      : 'Failed to check permissions for events stream'
+    return (
+      <Flex vertical gap={8}>
+        <Alert type="error" message={message} showIcon />
+      </Flex>
+    )
+  }
+
+  if (
+    isPermissionCheckEnabled &&
+    (listPermission.data?.status?.allowed !== true || watchPermission.data?.status?.allowed !== true)
+  ) {
+    return (
+      <Flex vertical gap={8}>
+        <Alert type="error" message="Access denied (403)" showIcon />
+      </Flex>
+    )
   }
 
   return (

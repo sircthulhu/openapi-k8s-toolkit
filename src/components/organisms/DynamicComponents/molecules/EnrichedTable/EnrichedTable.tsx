@@ -222,7 +222,7 @@ export const EnrichedTable: FC<{ data: TDynamicComponentsAppTypeMap['EnrichedTab
   }
 
   if (k8sResourceToFetchPrepared && fetchedDataSocketError) {
-    return <div>Error: {JSON.stringify(fetchedDataError)}</div>
+    return <div>Error: {JSON.stringify(fetchedDataSocketError)}</div>
   }
 
   const dataFromOneOfHooks = fetchedData || fetchedDataSocket || {}
