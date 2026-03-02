@@ -145,6 +145,12 @@ export const SecretBase64Plain: FC<{ data: TDynamicComponentsAppTypeMap['SecretB
               <Styled.DisabledInput
                 $hidden={effectiveHidden}
                 onClick={e => handleInputClick(e, effectiveHidden, value)}
+                onCopy={e => {
+                  if (!effectiveHidden) {
+                    e.preventDefault()
+                    e.clipboardData?.setData('text/plain', value)
+                  }
+                }}
                 value={shownValue}
                 readOnly
               />
@@ -161,6 +167,12 @@ export const SecretBase64Plain: FC<{ data: TDynamicComponentsAppTypeMap['SecretB
             <Styled.DisabledInput
               $hidden={effectiveHidden}
               onClick={e => handleInputClick(e, effectiveHidden, value)}
+              onCopy={e => {
+                if (!effectiveHidden) {
+                  e.preventDefault()
+                  e.clipboardData?.setData('text/plain', value)
+                }
+              }}
               value={shownValue}
               readOnly
             />
