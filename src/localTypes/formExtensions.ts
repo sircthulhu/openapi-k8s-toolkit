@@ -57,4 +57,6 @@ export type TListInputCustomProps = {
     keepPrefilled?: boolean
   }
   relatedValuePath?: string
+  allowEmpty?: boolean
+  persistType?: 'str' | 'number' | 'arr' | 'obj'
 }

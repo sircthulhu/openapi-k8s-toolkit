@@ -148,6 +148,13 @@ export const FormListInput: FC<TFormListInputProps> = ({
     }
   }, [relatedPath, form, arrName, fixedName, relatedFieldValue, onValuesChangeCallBack, isTouchedPeristed])
 
+  // When allowEmpty is set, auto-persist the field so the BFF preserves empty values
+  useEffect(() => {
+    if (customProps.allowEmpty) {
+      persistedControls.onPersistMark(persistName || name, customProps.persistType ?? 'str')
+    }
+  }, [customProps.allowEmpty, customProps.persistType, persistedControls, persistName, name])
+
   const uri = prepareTemplate({
     template: customProps.valueUri,
     replaceValues: { cluster, namespace, syntheticProject, relatedFieldValue, name: entryName },
@@ -267,6 +274,15 @@ export const FormListInput: FC<TFormListInputProps> = ({
           validateTrigger="onBlur"
           hasFeedback={designNewLayout ? { icons: feedbackIcons } : true}
           style={{ flex: 1 }}
+          normalize={(value: unknown) => {
+            if (customProps.allowEmpty && (value === undefined || value === null)) {
+              if (customProps.persistType === 'number') return 0
+              if (customProps.persistType === 'arr') return []
+              if (customProps.persistType === 'obj') return {}
+              return ''
+            }
+            return value
+          }}
         >
           <Select
             mode={customProps.mode}
