@@ -49,6 +49,7 @@ import { TAggregatedCounterCardProps } from './AggregatedCounterCard'
 import { TBase64IconProps } from './Base64Icon'
 import { TUsageGraphCardProps } from './UsageGraphCard'
 import { TActionsDropdownProps } from './ActionsDropdown'
+import { TVolumesProps } from './Volumes'
 
 export type TDynamicComponentsAppTypeMap = {
   antdText: TAntdTextProps
@@ -102,4 +103,5 @@ export type TDynamicComponentsAppTypeMap = {
   Base64Icon: TBase64IconProps
   UsageGraphCard: TUsageGraphCardProps
   ActionsDropdown: TActionsDropdownProps
+  Volumes: TVolumesProps
 }

@@ -51,6 +51,7 @@ import {
   Base64Icon,
   UsageGraphCard,
   ActionsDropdown,
+  Volumes,
 } from './molecules'
 import { TDynamicComponentsAppTypeMap } from './types'
 
@@ -106,4 +107,5 @@ export const DynamicComponents: TRendererComponents<TDynamicComponentsAppTypeMap
   Base64Icon,
   UsageGraphCard,
   ActionsDropdown,
+  Volumes,
 }
