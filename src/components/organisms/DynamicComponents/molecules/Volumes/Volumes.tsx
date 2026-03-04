@@ -1,30 +1,106 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-console */
-import React, { FC, useMemo } from 'react'
+import React, { FC, Suspense, useMemo } from 'react'
 import jp from 'jsonpath'
-import { Table } from 'antd'
+import { TAdditionalPrinterColumnsKeyTypeProps } from 'localTypes/richTable'
+import { EnrichedTable } from 'components/molecules'
 import { TDynamicComponentsAppTypeMap } from '../../types'
 import { useMultiQuery } from '../../../DynamicRendererWithProviders/providers/hybridDataProvider'
+import { useTheme } from '../../../DynamicRendererWithProviders/providers/themeContext'
 
-const getVolumeType = (volumeName: string, volumesMap: Record<string, any>): string => {
+const getVolumeTypeMeta = (
+  volumeName: string,
+  volumesMap: Record<string, any>,
+): { typeResource: string; typeName: string } => {
   const vol = volumesMap[volumeName]
-  if (!vol) return volumeName
-  if (vol.configMap) return `CM/${vol.configMap.name}`
-  if (vol.secret) return `S/${vol.secret.secretName}`
-  return volumeName
+  if (!vol) return { typeResource: 'Volume', typeName: volumeName }
+  if (vol.configMap) return { typeResource: 'ConfigMap', typeName: vol.configMap.name }
+  if (vol.secret) return { typeResource: 'Secret', typeName: vol.secret.secretName }
+  return { typeResource: 'Volume', typeName: volumeName }
 }
 
 const columns = [
-  { title: 'Container', dataIndex: 'containerName', key: 'containerName' },
-  { title: 'Type', dataIndex: 'type', key: 'type' },
   { title: 'Name', dataIndex: 'name', key: 'name' },
   { title: 'Mount Path', dataIndex: 'mountPath', key: 'mountPath' },
   { title: 'Sub Path', dataIndex: 'subPath', key: 'subPath' },
+  { title: 'Type', dataIndex: 'typeName', key: 'typeName' },
   { title: 'Access', dataIndex: 'access', key: 'access' },
+  { title: 'Utilized by', dataIndex: 'containerName', key: 'containerName' },
+  // { title: 'Type', dataIndex: 'typeResource', key: 'typeResource' },
 ]
+
+const customColumns: TAdditionalPrinterColumnsKeyTypeProps = {
+  typeName: {
+    type: 'factory',
+    customProps: {
+      disableEventBubbling: true,
+      items: [
+        {
+          type: 'antdFlex',
+          data: {
+            align: 'center',
+            direction: 'row',
+            gap: 6,
+            id: 'resource-badge-link-row',
+          },
+          children: [
+            {
+              type: 'ResourceBadge',
+              data: {
+                id: 'typeName-badge',
+                value: "{reqsJsonPath[0]['.typeResource']['-']}",
+              },
+            },
+            {
+              type: 'parsedText',
+              data: {
+                id: 'typeName-text',
+                text: `{reqsJsonPath[0]['.typeName']['-']}`,
+              },
+            },
+          ],
+        },
+      ],
+    },
+  },
+  containerName: {
+    type: 'factory',
+    customProps: {
+      disableEventBubbling: true,
+      items: [
+        {
+          type: 'antdFlex',
+          data: {
+            align: 'center',
+            direction: 'row',
+            gap: 6,
+            id: 'resource-badge-link-row',
+          },
+          children: [
+            {
+              type: 'ResourceBadge',
+              data: {
+                id: 'typeName-badge',
+                value: 'Container',
+              },
+            },
+            {
+              type: 'parsedText',
+              data: {
+                id: 'typeName-text',
+                text: `{reqsJsonPath[0]['.containerName']['-']}`,
+              },
+            },
+          ],
+        },
+      ],
+    },
+  },
+}
 
 export const Volumes: FC<{ data: TDynamicComponentsAppTypeMap['Volumes']; children?: any }> = ({ data, children }) => {
   const { id, reqIndex, jsonPathToSpec, errorText, containerStyle } = data
+  const theme = useTheme()
 
   const { data: multiQueryData, isLoading: isMultiQueryLoading, isError: isMultiQueryErrors, errors } = useMultiQuery()
 
@@ -50,9 +126,9 @@ export const Volumes: FC<{ data: TDynamicComponentsAppTypeMap['Volumes']; childr
     return containers.flatMap((container: any, cIdx: number) => {
       const mounts: any[] = Array.isArray(container.volumeMounts) ? container.volumeMounts : []
       return mounts.map((mount: any, mIdx: number) => ({
+        ...getVolumeTypeMeta(mount.name, volumesMap),
         ...mount,
         containerName: container.name || `container-${cIdx}`,
-        type: getVolumeType(mount.name, volumesMap),
         access: mount.readOnly ? 'RO' : 'RW',
         key: `${cIdx}-${mIdx}`,
       }))
@@ -82,7 +158,16 @@ export const Volumes: FC<{ data: TDynamicComponentsAppTypeMap['Volumes']; childr
 
   return (
     <div style={containerStyle}>
-      <Table columns={columns} dataSource={dataSource} pagination={false} size="small" />
+      <Suspense fallback={<div>Loading...</div>}>
+        <EnrichedTable
+          theme={theme}
+          columns={columns}
+          dataSource={dataSource}
+          additionalPrinterColumnsKeyTypeProps={customColumns}
+          withoutControls
+          tableProps={{ disablePagination: true }}
+        />
+      </Suspense>
       {children}
     </div>
   )

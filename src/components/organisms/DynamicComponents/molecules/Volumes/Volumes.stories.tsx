@@ -3,63 +3,49 @@ import React from 'react'
 import Editor from '@monaco-editor/react'
 import * as yaml from 'yaml'
 
-import { Volumes } from './Volumes'
-import { TDynamicComponentsAppTypeMap } from '../../types'
-
-// Storybook-only mocks (aliased in .storybook/main.ts via viteFinal)
-import { SmartProvider } from '../../../../../../.storybook/mocks/SmartProvider'
+import type { TDynamicComponentsAppTypeMap } from '../../types'
 
 type TInner = TDynamicComponentsAppTypeMap['Volumes']
+type TArgs = TInner
 
-type TProviderArgs = {
-  isLoading: boolean
-  multiQueryData: Record<string, unknown> | null
-  partsOfUrl: string[]
-  theme: 'dark' | 'light'
-}
-
-type TArgs = TInner & TProviderArgs
+const VolumesDocsOnly: React.FC = () => (
+  <div style={{ padding: 16 }}>
+    <p style={{ marginBottom: 8 }}>
+      <strong>Volumes</strong> builds table rows from mounted container volumes and renders them through the shared
+      <code> EnrichedTable </code>.
+    </p>
+    <p style={{ marginBottom: 8 }}>
+      It depends on runtime app providers (<code>useMultiQuery</code>, theme context, and lazy table wiring), so this
+      Storybook entry is <strong>docs-only</strong> and does not render the real component.
+    </p>
+    <p style={{ marginBottom: 0 }}>
+      Use controls to edit factory <code>data</code> and copy the YAML snippet into your dynamic layout config.
+    </p>
+  </div>
+)
 
 const meta: Meta<TArgs> = {
   title: 'Factory/Volumes',
-  component: Volumes as any,
+  component: VolumesDocsOnly,
   argTypes: {
-    // data.*
-    id: { control: 'text', description: 'data.id' },
+    id: { control: 'text', description: 'data.id (unique identifier in your schema)' },
     reqIndex: {
       control: 'text',
-      description: 'data.reqIndex (string; used as `multiQueryData["req" + reqIndex]`, e.g. "0" -> req0)',
+      description: 'data.reqIndex (string; used as multiQueryData["req" + reqIndex])',
     },
     jsonPathToSpec: {
       control: 'text',
-      description: 'data.jsonPathToSpec (jsonpath to pod spec containing containers and volumes)',
+      description: 'data.jsonPathToSpec (jsonpath to object containing .containers and .volumes)',
     },
     errorText: {
       control: 'text',
-      description: 'data.errorText (shown when root is missing/invalid)',
+      description: 'data.errorText (shown when req root is missing)',
     },
-    containerStyle: { control: 'object', description: 'data.containerStyle' },
-
-    // provider knobs
-    isLoading: {
-      control: 'boolean',
-      description: 'useMultiQuery.isLoading (simulated)',
-    },
-    multiQueryData: {
+    containerStyle: {
       control: 'object',
-      description: 'mock data fed into MultiQueryMockProvider',
-    },
-    partsOfUrl: {
-      control: 'object',
-      description: 'mocked partsOfUrl.partsOfUrl array',
-    },
-    theme: {
-      control: 'radio',
-      options: ['light', 'dark'],
-      description: 'Mock UI Theme context',
+      description: 'Optional: container style applied to the outer wrapper div',
     },
   },
-
   render: args => {
     const data: TInner = {
       id: args.id,
@@ -71,18 +57,7 @@ const meta: Meta<TArgs> = {
 
     return (
       <>
-        <SmartProvider
-          multiQueryValue={{ data: args.multiQueryData, isLoading: args.isLoading }}
-          partsOfUrl={args.partsOfUrl}
-          theme={args.theme}
-        >
-          <div style={{ padding: 16 }}>
-            <Volumes data={data}>
-              <div style={{ fontSize: 12, color: '#999' }}>(children slot content)</div>
-            </Volumes>
-          </div>
-        </SmartProvider>
-
+        <VolumesDocsOnly />
         <Editor
           defaultLanguage="yaml"
           width="100%"
@@ -100,9 +75,16 @@ const meta: Meta<TArgs> = {
       </>
     )
   },
-
   parameters: {
     controls: { expanded: true },
+    docs: {
+      description: {
+        component:
+          'Docs-only story for the **DynamicComponents Volumes** factory. ' +
+          'The real component relies on runtime providers and lazy EnrichedTable rendering, so it is not rendered live here. ' +
+          'Use controls to tune `data` and copy generated YAML into your factory definitions.',
+      },
+    },
   },
 }
 
@@ -120,76 +102,6 @@ export const Default: Story = {
       padding: 12,
       border: '1px solid #eee',
       borderRadius: 4,
-    },
-
-    // providers
-    isLoading: false,
-    multiQueryData: {
-      req0: {
-        data: {
-          spec: {
-            volumes: [
-              { name: 'config-volume', configMap: { name: 'app-config' } },
-              { name: 'secret-volume', secret: { secretName: 'app-tls' } },
-              { name: 'shared-data', emptyDir: {} },
-              { name: 'log-volume', configMap: { name: 'log-config' } },
-            ],
-            containers: [
-              {
-                name: 'app',
-                volumeMounts: [
-                  { name: 'config-volume', mountPath: '/etc/config', subPath: '', readOnly: true },
-                  { name: 'secret-volume', mountPath: '/etc/secrets', subPath: 'tls.crt', readOnly: true },
-                ],
-              },
-              {
-                name: 'sidecar',
-                volumeMounts: [
-                  { name: 'shared-data', mountPath: '/var/shared', subPath: '' },
-                  { name: 'log-volume', mountPath: '/var/log/app', subPath: 'sidecar' },
-                ],
-              },
-            ],
-          },
-        },
-      },
-    },
-    partsOfUrl: [],
-    theme: 'light',
-  },
-}
-
-export const MissingRoot: Story = {
-  args: {
-    ...Default.args,
-    multiQueryData: {},
-  },
-}
-
-export const Loading: Story = {
-  args: {
-    ...Default.args,
-    isLoading: true,
-  },
-}
-
-export const EmptyArray: Story = {
-  args: {
-    ...Default.args,
-    multiQueryData: {
-      req0: {
-        data: {
-          spec: {
-            volumes: [],
-            containers: [
-              {
-                name: 'app',
-                volumeMounts: [],
-              },
-            ],
-          },
-        },
-      },
     },
   },
 }
