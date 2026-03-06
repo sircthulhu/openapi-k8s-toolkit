@@ -129,7 +129,7 @@ export const AggregatedCounterCard: FC<{
   const jsonRoot = multiQueryData[`req${counter.props.reqIndex}`]
 
   if (jsonRoot === undefined) {
-    console.log(`Counter: ${id}: No root for json path`)
+    // console.log(`Counter: ${id}: No root for json path`)
     return (
       <Styled.Card
         $colorBorder={token.colorBorder}
@@ -163,7 +163,7 @@ export const AggregatedCounterCard: FC<{
     counter.type === 'item' ? getItemCounterItemsInside(anythingForNow) : getKeyCounterItemsInside(anythingForNow)
 
   if (errorParsingCounter) {
-    console.log(`Counter: ${id}: ${errorParsingCounter}`)
+    // console.log(`Counter: ${id}: ${errorParsingCounter}`)
     return (
       <Styled.Card
         $colorBorder={token.colorBorder}

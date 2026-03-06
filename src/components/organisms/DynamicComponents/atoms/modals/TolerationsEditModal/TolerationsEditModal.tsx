@@ -64,7 +64,7 @@ export const TolerationsEditModal: FC<TTolerationsEditModalProps> = ({
     form
       .validateFields()
       .then(() => {
-        console.log(JSON.stringify(tolerations))
+        // console.log(JSON.stringify(tolerations))
         setIsLoading(true)
         setError(undefined)
         patchEntryWithReplaceOp({ endpoint, pathToValue, body: tolerations })

@@ -47,7 +47,7 @@ export const ItemCounter: FC<{ data: TDynamicComponentsAppTypeMap['ItemCounter']
   const jsonRoot = multiQueryData[`req${reqIndex}`]
 
   if (jsonRoot === undefined) {
-    console.log(`Item Counter: ${id}: No root for json path`)
+    // console.log(`Item Counter: ${id}: No root for json path`)
     return <span style={style}>{errorText}</span>
   }
 
@@ -56,7 +56,7 @@ export const ItemCounter: FC<{ data: TDynamicComponentsAppTypeMap['ItemCounter']
   const { counter, error: errorArrayOfObjects } = getItemCounterItemsInside(anythingForNow)
 
   if (errorArrayOfObjects) {
-    console.log(`Item Counter: ${id}: ${errorArrayOfObjects}`)
+    // console.log(`Item Counter: ${id}: ${errorArrayOfObjects}`)
     return <span style={style}>{errorText}</span>
   }
 

@@ -99,6 +99,7 @@ const customColumns: TAdditionalPrinterColumnsKeyTypeProps = {
 }
 
 export const Volumes: FC<{ data: TDynamicComponentsAppTypeMap['Volumes']; children?: any }> = ({ data, children }) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { id, reqIndex, jsonPathToSpec, errorText, containerStyle } = data
   const theme = useTheme()
 
@@ -152,7 +153,7 @@ export const Volumes: FC<{ data: TDynamicComponentsAppTypeMap['Volumes']; childr
   const jsonRoot = multiQueryData[`req${reqIndex}`]
 
   if (jsonRoot === undefined) {
-    console.log(`Volumes: ${id}: No root for json path`)
+    // console.log(`Volumes: ${id}: No root for json path`)
     return <div style={containerStyle}>{errorText}</div>
   }
 

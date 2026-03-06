@@ -269,8 +269,9 @@ export const BlackholeForm: FC<TBlackholeFormProps> = ({
 
             if (isCreate) {
               createNewEntry({ endpoint, body })
-                .then(res => {
-                  console.log(res)
+                // .then(res => {
+                .then(() => {
+                  // console.log(res)
                   if (resolvedBacklink) {
                     navigate(resolvedBacklink)
                   }
@@ -286,8 +287,9 @@ export const BlackholeForm: FC<TBlackholeFormProps> = ({
                 })
             } else {
               updateEntry({ endpoint, body })
-                .then(res => {
-                  console.log(res)
+                // .then(res => {
+                .then(() => {
+                  // console.log(res)
                   if (resolvedBacklink) {
                     navigate(resolvedBacklink)
                   }
@@ -987,7 +989,7 @@ export const BlackholeForm: FC<TBlackholeFormProps> = ({
     const prev = prevInitialValues.current
     if (!_.isEqual(prev, initialValues)) {
       if (initialValues) {
-        console.log('fired initial values', initialValues)
+        // console.log('fired initial values', initialValues)
         onValuesChangeCallback(initialValues)
       }
       prevInitialValues.current = initialValues
@@ -1227,7 +1229,7 @@ export const BlackholeForm: FC<TBlackholeFormProps> = ({
   }
 
   const onPersistUnmark = (value: TFormName) => {
-    console.log(value)
+    // console.log(value)
     setPersistedKeys([...persistedKeys.filter(arr => JSON.stringify(arr) !== JSON.stringify(value))])
   }
 

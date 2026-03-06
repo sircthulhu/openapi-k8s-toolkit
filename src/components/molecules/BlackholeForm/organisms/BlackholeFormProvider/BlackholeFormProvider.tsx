@@ -189,7 +189,7 @@ export const BlackholeFormProvider: FC<TBlackholeFormProviderProps> = ({
         }
         if (data.result === 'error') {
           setIsError(data.error)
-          console.warn(data.error)
+          // console.warn(data.error)
           if (data.forceViewMode) {
             applyForceViewMode(data.forceViewMode)
           } else {

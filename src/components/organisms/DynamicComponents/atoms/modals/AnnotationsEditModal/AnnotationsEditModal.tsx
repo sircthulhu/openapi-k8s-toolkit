@@ -72,7 +72,7 @@ export const AnnotationsEditModal: FC<TAnnotationsEditModalProps> = ({
         annotations.forEach(({ key, value }) => {
           result[key] = value || ''
         })
-        console.log(JSON.stringify(result))
+        // console.log(JSON.stringify(result))
         setIsLoading(true)
         setError(undefined)
         patchEntryWithReplaceOp({ endpoint, pathToValue, body: result })
