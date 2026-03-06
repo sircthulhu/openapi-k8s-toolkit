@@ -62,7 +62,7 @@ export const TaintsModal: FC<TTaintsModalProps> = ({
   const jsonRoot = multiQueryData[`req${reqIndex}`]
 
   if (jsonRoot === undefined) {
-    console.log(`Item Counter: No root for json path`)
+    // console.log(`Item Counter: No root for json path`)
   }
 
   const anythingForNow = jp.query(jsonRoot || {}, `$${jsonPathToArray}`)
@@ -104,7 +104,7 @@ export const TaintsModal: FC<TTaintsModalProps> = ({
   }
 
   if (errorArrayOfObjects) {
-    console.log(`Item Counter:  ${errorArrayOfObjects}`)
+    // console.log(`Item Counter:  ${errorArrayOfObjects}`)
     return (
       <>
         {contextHolder}

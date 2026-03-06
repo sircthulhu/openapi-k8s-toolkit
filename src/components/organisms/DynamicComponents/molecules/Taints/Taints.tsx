@@ -108,7 +108,7 @@ export const Taints: FC<{ data: TDynamicComponentsAppTypeMap['Taints']; children
   const jsonRoot = multiQueryData[`req${reqIndex}`]
 
   if (jsonRoot === undefined) {
-    console.log(`Item Counter: ${id}: No root for json path`)
+    // console.log(`Item Counter: ${id}: No root for json path`)
     return <span style={style}>{errorText}</span>
   }
 
@@ -151,7 +151,7 @@ export const Taints: FC<{ data: TDynamicComponentsAppTypeMap['Taints']; children
   }
 
   if (errorArrayOfObjects) {
-    console.log(`Item Counter: ${id}: ${errorArrayOfObjects}`)
+    // console.log(`Item Counter: ${id}: ${errorArrayOfObjects}`)
     return (
       <>
         <div style={containerStyle}>

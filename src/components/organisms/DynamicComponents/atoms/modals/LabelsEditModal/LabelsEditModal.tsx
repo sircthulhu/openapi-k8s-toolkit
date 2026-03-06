@@ -73,7 +73,7 @@ export const LabelsEditModal: FC<TLabelsEditModalProps> = ({
           const [key, value] = label.split('=')
           result[key] = value || ''
         })
-        console.log(JSON.stringify(result))
+        // console.log(JSON.stringify(result))
         setIsLoading(true)
         setError(undefined)
         patchEntryWithReplaceOp({ endpoint, pathToValue, body: result })

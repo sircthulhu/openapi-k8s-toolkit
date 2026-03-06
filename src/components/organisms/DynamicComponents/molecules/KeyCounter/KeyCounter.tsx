@@ -47,7 +47,7 @@ export const KeyCounter: FC<{ data: TDynamicComponentsAppTypeMap['KeyCounter']; 
   const jsonRoot = multiQueryData[`req${reqIndex}`]
 
   if (jsonRoot === undefined) {
-    console.log(`Key Counter: ${id}: No root for json path`)
+    // console.log(`Key Counter: ${id}: No root for json path`)
     return <span style={style}>{errorText}</span>
   }
 
@@ -56,7 +56,7 @@ export const KeyCounter: FC<{ data: TDynamicComponentsAppTypeMap['KeyCounter']; 
   const { counter, error: errorArrayOfObjects } = getKeyCounterItemsInside(anythingForNow)
 
   if (errorArrayOfObjects) {
-    console.log(`Key Counter: ${id}: ${errorArrayOfObjects}`)
+    // console.log(`Key Counter: ${id}: ${errorArrayOfObjects}`)
     return <span style={style}>{errorText}</span>
   }
 

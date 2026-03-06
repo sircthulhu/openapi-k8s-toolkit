@@ -177,8 +177,9 @@ export const YamlEditorSingleton: FC<TYamlEditorSingletonProps> = ({
     }/${plural}/${isCreate ? '' : name}`
     if (isCreate) {
       createNewEntry({ endpoint, body })
-        .then(res => {
-          console.log(res)
+        // .then(res => {
+        .then(() => {
+          // console.log(res)
           if (backlink) {
             navigate(backlink)
           }
@@ -198,8 +199,9 @@ export const YamlEditorSingleton: FC<TYamlEditorSingletonProps> = ({
         })
     } else {
       updateEntry({ endpoint, body })
-        .then(res => {
-          console.log(res)
+        // .then(res => {
+        .then(() => {
+          // console.log(res)
           if (backlink) {
             navigate(backlink)
           }

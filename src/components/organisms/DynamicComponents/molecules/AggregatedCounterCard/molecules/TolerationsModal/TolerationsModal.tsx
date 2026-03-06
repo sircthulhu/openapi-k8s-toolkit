@@ -62,7 +62,7 @@ export const TolerationsModal: FC<TTolerationsModalProps> = ({
   const jsonRoot = multiQueryData[`req${reqIndex}`]
 
   if (jsonRoot === undefined) {
-    console.log(`Item Counter: No root for json path`)
+    // console.log(`Item Counter: No root for json path`)
     return <div>No root for json path</div>
   }
 
@@ -105,7 +105,7 @@ export const TolerationsModal: FC<TTolerationsModalProps> = ({
   }
 
   if (errorArrayOfObjects) {
-    console.log(`Item Counter: ${errorArrayOfObjects}`)
+    // console.log(`Item Counter: ${errorArrayOfObjects}`)
     return (
       <>
         {contextHolder}

@@ -110,7 +110,7 @@ export const Annotations: FC<{ data: TDynamicComponentsAppTypeMap['Annotations']
   const jsonRoot = multiQueryData[`req${reqIndex}`]
 
   if (jsonRoot === undefined) {
-    console.log(`Item Counter: ${id}: No root for json path`)
+    // console.log(`Item Counter: ${id}: No root for json path`)
     return <div style={containerStyle}>{errorText}</div>
   }
 
@@ -153,7 +153,7 @@ export const Annotations: FC<{ data: TDynamicComponentsAppTypeMap['Annotations']
   }
 
   if (errorArrayOfObjects) {
-    console.log(`Item Counter: ${id}: ${errorArrayOfObjects}`)
+    // console.log(`Item Counter: ${id}: ${errorArrayOfObjects}`)
     return (
       <>
         <div style={containerStyle}>

@@ -62,7 +62,7 @@ export const AnnotationsModal: FC<TAnnotationsModalProps> = ({
   const jsonRoot = multiQueryData[`req${reqIndex}`]
 
   if (jsonRoot === undefined) {
-    console.log(`Item Counter: No root for json path`)
+    // console.log(`Item Counter: No root for json path`)
     return <div>No root for json path</div>
   }
 
@@ -105,7 +105,7 @@ export const AnnotationsModal: FC<TAnnotationsModalProps> = ({
   }
 
   if (errorArrayOfObjects) {
-    console.log(`Item Counter: ${errorArrayOfObjects}`)
+    // console.log(`Item Counter: ${errorArrayOfObjects}`)
     return (
       <>
         {contextHolder}

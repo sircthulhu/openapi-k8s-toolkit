@@ -63,7 +63,7 @@ export const TaintsEditModal: FC<TTaintsEditModalProps> = ({
     form
       .validateFields()
       .then(() => {
-        console.log(JSON.stringify(taints))
+        // console.log(JSON.stringify(taints))
         setIsLoading(true)
         setError(undefined)
         patchEntryWithReplaceOp({ endpoint, pathToValue, body: taints })
