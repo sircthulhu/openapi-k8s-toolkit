@@ -34,7 +34,9 @@ import {
   collectArrayLengths,
   templateMatchesArray,
   buildConcretePathForNewItem,
+  getConcretePathsForNewArrayItem,
   scrubLiteralWildcardKeys,
+  TWildcardTemplate,
 } from './helpers/prefills'
 import { DEBUG_PREFILLS, dbg, group, end, wdbg, wgroup, wend, prettyPath } from './helpers/debugs'
 import { sanitizeWildcardPath, expandWildcardTemplates, toStringPath, isPrefix } from './helpers/hiddenExpanded'
@@ -163,7 +165,18 @@ export const BlackholeForm: FC<TBlackholeFormProps> = ({
       return value
     })
   }
-  const [persistedKeys, setPersistedKeys] = useState<TFormName[]>(persistedPaths || [])
+  const exactPersistedPaths = useMemo<TFormName[]>(
+    () => (persistedPaths || []).filter(path => !path.some(seg => seg === '*')),
+    [persistedPaths],
+  )
+  const persistedWildcardTemplates = useMemo<TWildcardTemplate[]>(
+    () =>
+      (persistedPaths || [])
+        .filter(path => path.some(seg => seg === '*'))
+        .map(path => ({ wildcardPath: sanitizeWildcardPath(path as (string | number | unknown)[]) })),
+    [persistedPaths],
+  )
+  const [persistedKeys, setPersistedKeys] = useState<TFormName[]>(exactPersistedPaths)
   const [resolvedHiddenPaths, setResolvedHiddenPaths] = useState<TFormName[]>([])
 
   const blockedPathsRef = useRef<Set<string>>(new Set())
@@ -437,6 +450,34 @@ export const BlackholeForm: FC<TBlackholeFormProps> = ({
     [form, prefillTemplates],
   )
 
+  const applyPersistedForNewArrayItem = useCallback(
+    (arrayPath: (string | number)[], newIndex: number) => {
+      const concretePaths = getConcretePathsForNewArrayItem(
+        persistedWildcardTemplates,
+        arrayPath,
+        newIndex,
+      ) as TFormName[]
+
+      if (!concretePaths.length) return
+
+      setPersistedKeys(prev => {
+        const seen = new Set(prev.map(x => JSON.stringify(x)))
+        const merged = [...prev]
+
+        concretePaths.forEach(path => {
+          const key = JSON.stringify(path)
+          if (!seen.has(key)) {
+            seen.add(key)
+            merged.push(path)
+          }
+        })
+
+        return merged
+      })
+    },
+    [persistedWildcardTemplates],
+  )
+
   // --- Feature: wildcard hidden/expanded items ---
   // Raw props: hiddenPaths?: string[][], expandedPaths: string[][]
   // Normalize: strings/nums/objects → allow '*' wildcards
@@ -491,8 +532,28 @@ export const BlackholeForm: FC<TBlackholeFormProps> = ({
       return merged
     })
 
+    const persistedResolved = expandWildcardTemplates(
+      persistedWildcardTemplates.map(tpl => tpl.wildcardPath),
+      initialValues as any,
+      {
+        includeMissingFinalForWildcard: true,
+      },
+    )
+    setPersistedKeys(prev => {
+      const seen = new Set(prev.map(x => JSON.stringify(x)))
+      const merged = [...prev]
+      for (const p of persistedResolved) {
+        const k = JSON.stringify(p as any)
+        if (!seen.has(k)) {
+          seen.add(k)
+          merged.push(p as any)
+        }
+      }
+      return merged
+    })
+
     wend()
-  }, [initialValues, hiddenWildcardTemplates, expandedWildcardTemplates])
+  }, [initialValues, hiddenWildcardTemplates, expandedWildcardTemplates, persistedWildcardTemplates])
 
   const resolvedHiddenStringPaths = useMemo<string[][]>(
     () => resolvedHiddenPaths.map(toStringPath),
@@ -744,6 +805,7 @@ export const BlackholeForm: FC<TBlackholeFormProps> = ({
 
             // your existing prefills (wildcards etc.)
             applyPrefillForNewArrayItem(arrayPath, i)
+            applyPersistedForNewArrayItem(arrayPath, i)
           }
         }
       }
@@ -766,6 +828,7 @@ export const BlackholeForm: FC<TBlackholeFormProps> = ({
           for (let i = prevLen; i < newLen; i++) {
             dbg('…prefilling new index', i, 'under', arrayPath)
             applyPrefillForNewArrayItem(arrayPath, i)
+            applyPersistedForNewArrayItem(arrayPath, i)
           }
         }
       }
@@ -789,6 +852,7 @@ export const BlackholeForm: FC<TBlackholeFormProps> = ({
       persistedKeys,
       debouncedPostValuesToYaml,
       applyPrefillForNewArrayItem,
+      applyPersistedForNewArrayItem,
       hiddenWildcardTemplates,
       expandedWildcardTemplates,
     ],

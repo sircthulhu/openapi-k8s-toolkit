@@ -5,18 +5,16 @@
 import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import axios from 'axios'
+import { useK8sSmartResource } from 'hooks/useK8sSmartResource'
 import { BlackholeFormProvider } from './BlackholeFormProvider'
 
 jest.mock('axios')
 const mockPost = axios.post as unknown as jest.Mock
 
 jest.mock('hooks/useK8sSmartResource', () => ({
-  useK8sSmartResource: () => ({
-    data: undefined,
-    isLoading: false,
-    isError: false,
-  }),
+  useK8sSmartResource: jest.fn(),
 }))
+const mockUseK8sSmartResource = useK8sSmartResource as jest.Mock
 
 jest.mock('../BlackholeForm', () => ({
   BlackholeForm: (props: any) => (
@@ -52,6 +50,21 @@ const baseProps = {
 describe('BlackholeFormProvider', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    mockUseK8sSmartResource.mockImplementation(({ plural }: { plural: string }) => {
+      if (plural === 'customformsoverrides' || plural === 'customformsprefills') {
+        return {
+          data: undefined,
+          isLoading: false,
+          isError: false,
+        }
+      }
+
+      return {
+        data: undefined,
+        isLoading: false,
+        isError: false,
+      }
+    })
   })
 
   test('renders BlackholeForm on success', async () => {
@@ -72,6 +85,116 @@ describe('BlackholeFormProvider', () => {
 
     expect(await screen.findByTestId('blackhole-form')).toBeInTheDocument()
     expect(screen.getByText(/kind:Deployment/)).toBeInTheDocument()
+    expect(mockPost).toHaveBeenCalledWith(`/api/clusters/c1/openapi-bff/forms/formPrepare/prepareFormProps`, {
+      cluster: 'c1',
+      data: baseProps.data,
+      customizationId: undefined,
+      customizationIdPrefill: undefined,
+    })
+  })
+
+  test('sends direct customizationId for prefill when matching prefill exists', async () => {
+    mockUseK8sSmartResource.mockImplementation(({ plural }: { plural: string }) => {
+      if (plural === 'customformsoverrides') {
+        return {
+          data: { items: [{ spec: { customizationId: 'custom-a' } }] },
+          isLoading: false,
+          isError: false,
+        }
+      }
+
+      if (plural === 'customformsprefills') {
+        return {
+          data: { items: [{ spec: { customizationId: 'custom-a' } }] },
+          isLoading: false,
+          isError: false,
+        }
+      }
+
+      return {
+        data: { items: [{ spec: { mappings: { 'custom-a': 'mapped-a' } } }] },
+        isLoading: false,
+        isError: false,
+      }
+    })
+
+    mockPost.mockResolvedValue({
+      data: {
+        result: 'ok',
+        properties: { spec: { type: 'object' } },
+        required: ['spec'],
+        expandedPaths: [],
+        persistedPaths: [],
+        kind: 'Deployment',
+        isNamespaced: true,
+      },
+    })
+
+    render(<BlackholeFormProvider {...(baseProps as any)} customizationId="custom-a" />)
+
+    await screen.findByTestId('blackhole-form')
+
+    expect(mockPost).toHaveBeenCalledWith(`/api/clusters/c1/openapi-bff/forms/formPrepare/prepareFormProps`, {
+      cluster: 'c1',
+      data: baseProps.data,
+      customizationId: 'custom-a',
+      customizationIdPrefill: 'custom-a',
+    })
+  })
+
+  test('falls back to fallbackId for prefill when customizationId and mapped id are missing in prefills', async () => {
+    mockUseK8sSmartResource.mockImplementation(({ plural }: { plural: string }) => {
+      if (plural === 'customformsoverrides') {
+        return {
+          data: { items: [{ spec: { customizationId: 'mapped-a' } }] },
+          isLoading: false,
+          isError: false,
+        }
+      }
+
+      if (plural === 'customformsprefills') {
+        return {
+          data: { items: [{ spec: { customizationId: 'fallback-a' } }] },
+          isLoading: false,
+          isError: false,
+        }
+      }
+
+      return {
+        data: { items: [{ spec: { mappings: { 'custom-a': 'mapped-a' } } }] },
+        isLoading: false,
+        isError: false,
+      }
+    })
+
+    mockPost.mockResolvedValue({
+      data: {
+        result: 'ok',
+        properties: { spec: { type: 'object' } },
+        required: ['spec'],
+        expandedPaths: [],
+        persistedPaths: [],
+        kind: 'Deployment',
+        isNamespaced: true,
+      },
+    })
+
+    render(
+      <BlackholeFormProvider
+        {...(baseProps as any)}
+        customizationId="custom-a"
+        forcingCustomization={{ ...baseProps.forcingCustomization, fallbackId: 'fallback-a' }}
+      />,
+    )
+
+    await screen.findByTestId('blackhole-form')
+
+    expect(mockPost).toHaveBeenCalledWith(`/api/clusters/c1/openapi-bff/forms/formPrepare/prepareFormProps`, {
+      cluster: 'c1',
+      data: baseProps.data,
+      customizationId: 'mapped-a',
+      customizationIdPrefill: 'fallback-a',
+    })
   })
 
   test('backend result=error: shows Alert and requests manual fallback when parent does not update mode', async () => {

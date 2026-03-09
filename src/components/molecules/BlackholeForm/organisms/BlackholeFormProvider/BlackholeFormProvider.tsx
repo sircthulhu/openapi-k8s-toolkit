@@ -21,6 +21,14 @@ type TCustomFormsOverridesResponse = {
   }[]
 }
 
+type TCustomFormsPrefillsResponse = {
+  items?: {
+    spec?: {
+      customizationId?: string
+    }
+  }[]
+}
+
 type TCustomFormsOverridesMappingResponse = {
   items?: {
     spec?: {
@@ -113,6 +121,14 @@ export const BlackholeFormProvider: FC<TBlackholeFormProviderProps> = ({
     isEnabled: Boolean(cluster && forcingCustomization.baseApiGroup && forcingCustomization.baseApiVersion),
   })
 
+  const { data: prefillsData, isLoading: prefillsLoading } = useK8sSmartResource<TCustomFormsPrefillsResponse>({
+    cluster,
+    apiGroup: forcingCustomization.baseApiGroup,
+    apiVersion: forcingCustomization.baseApiVersion,
+    plural: 'customformsprefills',
+    isEnabled: Boolean(cluster && forcingCustomization.baseApiGroup && forcingCustomization.baseApiVersion),
+  })
+
   const { data: mappingData, isLoading: mappingLoading } = useK8sSmartResource<TCustomFormsOverridesMappingResponse>({
     cluster,
     apiGroup: forcingCustomization.baseApiGroup,
@@ -158,11 +174,24 @@ export const BlackholeFormProvider: FC<TBlackholeFormProviderProps> = ({
   const hasForcedMatchingOverride = Boolean(
     forcedCustomizationId && overridesData?.items?.some(item => item?.spec?.customizationId === forcedCustomizationId),
   )
-  const isResolutionReady = !customizationId || (!overridesLoading && !mappingLoading)
+  const hasMatchingPrefill = Boolean(
+    customizationId && prefillsData?.items?.some(item => item?.spec?.customizationId === customizationId),
+  )
+  const hasForcedMatchingPrefill = Boolean(
+    forcedCustomizationId && prefillsData?.items?.some(item => item?.spec?.customizationId === forcedCustomizationId),
+  )
+  const isResolutionReady = !customizationId || (!overridesLoading && !prefillsLoading && !mappingLoading)
   const resolvedCustomizationId = isResolutionReady
     ? hasMatchingOverride
       ? customizationId
       : hasForcedMatchingOverride
+      ? forcedCustomizationId
+      : forcingCustomization.fallbackId
+    : undefined
+  const resolvedCustomizationIdPrefill = isResolutionReady
+    ? hasMatchingPrefill
+      ? customizationId
+      : hasForcedMatchingPrefill
       ? forcedCustomizationId
       : forcingCustomization.fallbackId
     : undefined
@@ -173,13 +202,14 @@ export const BlackholeFormProvider: FC<TBlackholeFormProviderProps> = ({
       return
     }
     if (!isResolutionReady) return
-    if (customizationId && !resolvedCustomizationId) return
+    if (customizationId && (!resolvedCustomizationId || !resolvedCustomizationIdPrefill)) return
 
     setIsLoading(true)
     const payload: TPrepareFormReq = {
       data,
       cluster,
       customizationId: resolvedCustomizationId,
+      customizationIdPrefill: resolvedCustomizationIdPrefill,
     }
     axios
       .post<TPrepareFormRes>(`/api/clusters/${cluster}/openapi-bff/forms/formPrepare/prepareFormProps`, payload)
@@ -222,6 +252,7 @@ export const BlackholeFormProvider: FC<TBlackholeFormProviderProps> = ({
     data,
     customizationId,
     resolvedCustomizationId,
+    resolvedCustomizationIdPrefill,
     isResolutionReady,
     fallbackToManualMode,
     applyForceViewMode,
