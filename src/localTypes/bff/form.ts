@@ -22,6 +22,7 @@ export type TPrepareFormReq = {
       }
   cluster: string
   customizationId?: string
+  customizationIdPrefill?: string
 }
 
 export type TPrepareFormRes =

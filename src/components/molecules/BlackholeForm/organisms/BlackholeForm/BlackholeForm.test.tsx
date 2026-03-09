@@ -136,22 +136,31 @@ jest.mock('./helpers/debugs', () => ({
   prettyPath: (p: any) => (Array.isArray(p) ? p.join('.') : String(p)),
 }))
 
+const expandWildcardTemplatesMock = jest.fn<any, [any, any, any?]>(() => [])
 const isPrefixMock = jest.fn((full: any[], prefix: any[]) => {
   if (!Array.isArray(full) || !Array.isArray(prefix) || prefix.length > full.length) return false
   return prefix.every((seg, idx) => full[idx] === seg)
 })
 jest.mock('./helpers/hiddenExpanded', () => ({
   sanitizeWildcardPath: (p: any) => p,
-  expandWildcardTemplates: () => [],
+  expandWildcardTemplates: (templates: any, values: any, opts?: any) =>
+    expandWildcardTemplatesMock(templates, values, opts),
   toStringPath: (p: any) => p,
   isPrefix: (full: any[], prefix: any[]) => isPrefixMock(full, prefix),
 }))
 
+const collectArrayLengthsMock = jest.fn<any, [any, any?, any?]>(() => new Map())
+const templateMatchesArrayMock = jest.fn<boolean, [any, any]>(() => false)
+const buildConcretePathForNewItemMock = jest.fn<any, [any, any, any]>((_tpl: any, arrayPath: any, newIndex: any) => [
+  ...arrayPath,
+  newIndex,
+])
 jest.mock('./helpers/prefills', () => ({
   toWildcardPath: (p: any) => p,
-  collectArrayLengths: () => new Map(),
-  templateMatchesArray: () => false,
-  buildConcretePathForNewItem: (_tpl: any, arrayPath: any, newIndex: any) => [...arrayPath, newIndex],
+  collectArrayLengths: (obj: any, base?: any, out?: any) => collectArrayLengthsMock(obj, base, out),
+  templateMatchesArray: (tpl: any, arrayPath: any) => templateMatchesArrayMock(tpl, arrayPath),
+  buildConcretePathForNewItem: (tpl: any, arrayPath: any, newIndex: any) =>
+    buildConcretePathForNewItemMock(tpl, arrayPath, newIndex),
   scrubLiteralWildcardKeys: (v: any) => v,
 }))
 
@@ -335,6 +344,13 @@ const editPrefills = {
 // -----------------------------
 beforeEach(() => {
   jest.clearAllMocks()
+  expandWildcardTemplatesMock.mockImplementation(() => [])
+  collectArrayLengthsMock.mockImplementation(() => new Map())
+  templateMatchesArrayMock.mockImplementation(() => false)
+  buildConcretePathForNewItemMock.mockImplementation((_tpl: any, arrayPath: any, newIndex: any) => [
+    ...arrayPath,
+    newIndex,
+  ])
   isPrefixMock.mockImplementation((full: any[], prefix: any[]) => {
     if (!Array.isArray(full) || !Array.isArray(prefix) || prefix.length > full.length) return false
     return prefix.every((seg, idx) => full[idx] === seg)
