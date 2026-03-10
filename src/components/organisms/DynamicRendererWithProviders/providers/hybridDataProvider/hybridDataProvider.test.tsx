@@ -16,9 +16,9 @@ jest.mock('@tanstack/react-query', () => {
   }
 })
 
-const useK8sSmartResourceMock = jest.fn()
+const useManyK8sSmartResourceMock = jest.fn()
 jest.mock('hooks/useK8sSmartResource', () => ({
-  useK8sSmartResource: (args: any) => useK8sSmartResourceMock(args),
+  useManyK8sSmartResource: (args: any) => useManyK8sSmartResourceMock(args),
 }))
 
 // -------------------- test helpers --------------------
@@ -61,65 +61,23 @@ const Output = () => {
 }
 
 /**
- * Two-phase stable K8s mock:
- * For each distinct params.id:
- *  - 1st call returns base
- *  - 2nd call returns base with a NEW ref for data if it's an object
- *    and a NEW ref for error if it's an object (e.g., Error)
- *
- * This causes K8sFetcher useEffect deps to change once after RESET,
- * letting it re-dispatch SET_ENTRY.
+ * Helper: create a useManyK8sSmartResource mock that returns results
+ * based on each item's `id` field.
  */
-const makeTwoPhaseK8sMock = (
+const makeK8sResultsMock = (
   byId: Record<string, { data: any; isLoading?: boolean; isError?: boolean; error?: any }>,
 ) => {
-  const counters = new Map<string, number>()
-  const secondDataRefs = new Map<string, any>()
-  const secondErrRefs = new Map<string, any>()
-
-  return (params: any) => {
-    const id = params?.id ?? 'unknown'
-    const base = byId[id] ?? { data: undefined, isLoading: false, isError: false, error: null }
-
-    const n = (counters.get(id) ?? 0) + 1
-    counters.set(id, n)
-
-    const isLoading = base.isLoading ?? false
-    const isError = base.isError ?? false
-    const error = base.error ?? null
-
-    if (n === 1) {
-      return { data: base.data, isLoading, isError, error }
-    }
-
-    // second-phase data ref
-    if (!secondDataRefs.has(id)) {
-      const d = base.data
-      secondDataRefs.set(id, d && typeof d === 'object' ? { ...d } : d)
-    }
-
-    // second-phase error ref
-    if (!secondErrRefs.has(id)) {
-      const e = error
-
-      if (e instanceof Error) {
-        // new ref + preserves message
-        secondErrRefs.set(id, new Error(e.message))
-      } else if (e && typeof e === 'object') {
-        // best-effort clone for AxiosError-like objects
-        secondErrRefs.set(id, { ...(e as any) })
-      } else {
-        secondErrRefs.set(id, e)
+  return (paramsList: any[]) =>
+    paramsList.map((params: any) => {
+      const id = params?.id ?? 'unknown'
+      const base = byId[id] ?? { data: undefined, isLoading: false, isError: false, error: undefined }
+      return {
+        data: base.data,
+        isLoading: base.isLoading ?? false,
+        isError: base.isError ?? false,
+        error: base.error ?? undefined,
       }
-    }
-
-    return {
-      data: secondDataRefs.get(id),
-      isLoading,
-      isError,
-      error: secondErrRefs.get(id),
-    }
-  }
+    })
 }
 
 const makeStableUrlResults = (...results: any[]) =>
@@ -156,8 +114,8 @@ describe('MultiQueryProvider / useMultiQuery', () => {
     const u1Data = { u: 1 }
     const u2Data = { u: 2 }
 
-    useK8sSmartResourceMock.mockImplementation(
-      makeTwoPhaseK8sMock({
+    useManyK8sSmartResourceMock.mockImplementation(
+      makeK8sResultsMock({
         k1: { data: k1Data },
         k2: { data: k2Data },
       }),
@@ -200,8 +158,8 @@ describe('MultiQueryProvider / useMultiQuery', () => {
     const k2Data = { k: 2 }
     const u1Data = { u: 1 }
 
-    useK8sSmartResourceMock.mockImplementation(
-      makeTwoPhaseK8sMock({
+    useManyK8sSmartResourceMock.mockImplementation(
+      makeK8sResultsMock({
         k1: { data: k1Data },
         k2: { data: k2Data },
       }),
@@ -230,11 +188,8 @@ describe('MultiQueryProvider / useMultiQuery', () => {
   })
 
   test('isLoading true if any K8s entry is loading', async () => {
-    // IMPORTANT:
-    // Provide a real object for data so the two-phase mock can change refs
-    // and re-trigger K8sFetcher effect after RESET.
-    useK8sSmartResourceMock.mockImplementation(
-      makeTwoPhaseK8sMock({
+    useManyK8sSmartResourceMock.mockImplementation(
+      makeK8sResultsMock({
         k1: { data: { k: 1 }, isLoading: true },
         k2: { data: { k: 2 }, isLoading: false },
       }),
@@ -254,8 +209,8 @@ describe('MultiQueryProvider / useMultiQuery', () => {
   })
 
   test('isLoading true if any URL query is loading', async () => {
-    useK8sSmartResourceMock.mockImplementation(
-      makeTwoPhaseK8sMock({
+    useManyK8sSmartResourceMock.mockImplementation(
+      makeK8sResultsMock({
         k1: { data: { k: 1 } },
       }),
     )
@@ -276,10 +231,8 @@ describe('MultiQueryProvider / useMultiQuery', () => {
   })
 
   test('isError true and errors array populated when any K8s entry errors', async () => {
-    // IMPORTANT:
-    // Use Error object so two-phase can change error ref after RESET.
-    useK8sSmartResourceMock.mockImplementation(
-      makeTwoPhaseK8sMock({
+    useManyK8sSmartResourceMock.mockImplementation(
+      makeK8sResultsMock({
         k1: { data: { k: 1 }, isError: true, error: new Error('k8s boom') },
         k2: { data: { k: 2 }, isError: false },
       }),
@@ -302,8 +255,8 @@ describe('MultiQueryProvider / useMultiQuery', () => {
   })
 
   test('isError true and errors array populated when any URL query errors', async () => {
-    useK8sSmartResourceMock.mockImplementation(
-      makeTwoPhaseK8sMock({
+    useManyK8sSmartResourceMock.mockImplementation(
+      makeK8sResultsMock({
         k1: { data: { k: 1 } },
       }),
     )
@@ -331,6 +284,7 @@ describe('MultiQueryProvider / useMultiQuery', () => {
   })
 
   test('handles empty items list', () => {
+    useManyK8sSmartResourceMock.mockImplementation(() => [])
     useQueriesMock.mockImplementation(() => [])
 
     render(
