@@ -437,7 +437,11 @@ export const BlackholeForm: FC<TBlackholeFormProps> = ({
         const current = form.getFieldValue(concretePath as any)
         dbg('current value at path', concretePath, ':', current)
 
-        if (typeof current === 'undefined') {
+        const isItemLevelWildcard = tpl.wildcardPath[tpl.wildcardPath.length - 1] === '*'
+        const isEffectivelyEmpty =
+          typeof current === 'undefined' || (isItemLevelWildcard && _.isPlainObject(current) && _.isEmpty(current))
+
+        if (isEffectivelyEmpty) {
           const toSet = _.cloneDeep(tpl.value)
           dbg('setting value', { path: concretePath, value: toSet })
           form.setFieldValue(concretePath as any, toSet)
