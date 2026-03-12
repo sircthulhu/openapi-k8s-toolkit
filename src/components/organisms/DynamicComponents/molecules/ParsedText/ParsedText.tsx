@@ -1,5 +1,6 @@
 /* eslint-disable react/no-array-index-key */
 import React, { FC } from 'react'
+import { Tooltip } from 'antd'
 import { TDynamicComponentsAppTypeMap } from '../../types'
 import { useMultiQuery } from '../../../DynamicRendererWithProviders/providers/hybridDataProvider'
 import { usePartsOfUrl } from '../../../DynamicRendererWithProviders/providers/partsOfUrlContext'
@@ -29,8 +30,15 @@ export const ParsedText: FC<{ data: TDynamicComponentsAppTypeMap['parsedText'] }
   }, {})
 
   const parsedText = parseAll({ text: data.text, replaceValues, multiQueryData })
+  const parsedTooltip = data.tooltip ? parseAll({ text: data.tooltip, replaceValues, multiQueryData }) : undefined
 
   const formattedText = data.formatter ? formatLocalDate(parsedText) : parsedText
 
-  return <span style={data.style}>{formattedText}</span>
+  const content = <span style={data.style}>{formattedText}</span>
+
+  if (parsedTooltip) {
+    return <Tooltip title={parsedTooltip}>{content}</Tooltip>
+  }
+
+  return content
 }
