@@ -37,6 +37,10 @@ const meta: Meta<TArgs> = {
       control: 'text',
       description: 'data.jsonPathToSpec (jsonpath to object containing .containers and .volumes)',
     },
+    jsonPathToPodName: {
+      control: 'text',
+      description: 'Optional: data.jsonPathToPodName (jsonpath to the pod name when req root is not the Pod itself)',
+    },
     errorText: {
       control: 'text',
       description: 'data.errorText (shown when req root is missing)',
@@ -51,6 +55,7 @@ const meta: Meta<TArgs> = {
       id: args.id,
       reqIndex: args.reqIndex,
       jsonPathToSpec: args.jsonPathToSpec,
+      jsonPathToPodName: args.jsonPathToPodName,
       errorText: args.errorText,
       containerStyle: args.containerStyle,
     }
@@ -97,6 +102,7 @@ export const Default: Story = {
     id: 'example-volumes',
     reqIndex: '0',
     jsonPathToSpec: '.data.spec',
+    jsonPathToPodName: '.metadata.name',
     errorText: 'No volume mounts found',
     containerStyle: {
       padding: 12,

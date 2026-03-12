@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { FC } from 'react'
-import { Typography } from 'antd'
+import { Typography, Tooltip } from 'antd'
 import { useNavigate } from 'react-router-dom'
 import { TDynamicComponentsAppTypeMap } from '../../types'
 import { useMultiQuery } from '../../../DynamicRendererWithProviders/providers/hybridDataProvider'
@@ -26,6 +26,8 @@ export const AntdLink: FC<{ data: TDynamicComponentsAppTypeMap['antdLink']; chil
   }, {})
 
   const textPrepared = parseAll({ text, replaceValues, multiQueryData })
+  const tooltipPrepared =
+    typeof linkProps.title === 'string' ? parseAll({ text: linkProps.title, replaceValues, multiQueryData }) : undefined
 
   const hrefPrepared = parseAll({ text: href, replaceValues, multiQueryData })
   const isExternal = isExternalHref(hrefPrepared)
@@ -34,7 +36,7 @@ export const AntdLink: FC<{ data: TDynamicComponentsAppTypeMap['antdLink']; chil
     return <div>Loading multiquery</div>
   }
 
-  return (
+  const content = (
     <Typography.Link
       href={hrefPrepared}
       onClick={e => {
@@ -51,4 +53,10 @@ export const AntdLink: FC<{ data: TDynamicComponentsAppTypeMap['antdLink']; chil
       {children}
     </Typography.Link>
   )
+
+  if (tooltipPrepared) {
+    return <Tooltip title={tooltipPrepared}>{content}</Tooltip>
+  }
+
+  return content
 }
