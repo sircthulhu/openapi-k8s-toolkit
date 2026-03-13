@@ -440,6 +440,7 @@ describe('BlackholeForm', () => {
     await waitFor(() => {
       expect(createNewEntryMock).toHaveBeenCalled()
       expect(navigateMock).toHaveBeenCalledWith('/list')
+      expect(screen.getByText(/Deployment "test-resource" created successfully/)).toBeInTheDocument()
     })
   })
 
@@ -481,6 +482,7 @@ describe('BlackholeForm', () => {
     await waitFor(() => {
       expect(updateEntryMock).toHaveBeenCalled()
       expect(navigateMock).toHaveBeenCalledWith('/details')
+      expect(screen.getByText(/Deployment "test-resource" updated successfully/)).toBeInTheDocument()
     })
   })
 
