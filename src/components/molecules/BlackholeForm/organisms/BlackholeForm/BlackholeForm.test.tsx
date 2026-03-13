@@ -9,7 +9,10 @@ import '@testing-library/jest-dom'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import axios from 'axios'
+import { App as AntdApp } from 'antd'
 import { BlackholeForm, TBlackholeFormProps } from './BlackholeForm'
+
+const renderWithApp = (ui: React.ReactElement) => render(<AntdApp>{ui}</AntdApp>)
 
 // -----------------------------
 // Global DOM polyfills for jsdom
@@ -371,9 +374,9 @@ beforeEach(() => {
   // Default axios behaviour: resolve with empty object
   axiosPostMock.mockResolvedValue({ data: {} })
 
-  // Default API calls resolve
-  createNewEntryMock.mockResolvedValue({ ok: true })
-  updateEntryMock.mockResolvedValue({ ok: true })
+  // Default API calls resolve with AxiosResponse shape
+  createNewEntryMock.mockResolvedValue({ data: { metadata: { name: 'test-resource' } } })
+  updateEntryMock.mockResolvedValue({ data: { metadata: { name: 'test-resource' } } })
 })
 
 // -----------------------------
@@ -381,7 +384,7 @@ beforeEach(() => {
 // -----------------------------
 describe('BlackholeForm', () => {
   test('renders YAML editor with correct editorUri in create mode', () => {
-    render(<BlackholeForm {...baseProps} />)
+    renderWithApp(<BlackholeForm {...baseProps} />)
 
     expect(screen.getByTestId('yaml-editor')).toHaveAttribute(
       'data-editor-uri',
@@ -390,7 +393,7 @@ describe('BlackholeForm', () => {
   })
 
   test('renders YAML editor with correct editorUri in edit mode', () => {
-    render(<BlackholeForm {...baseProps} isCreate={false} formsPrefills={editPrefills} />)
+    renderWithApp(<BlackholeForm {...baseProps} isCreate={false} formsPrefills={editPrefills} />)
 
     expect(screen.getByTestId('yaml-editor')).toHaveAttribute(
       'data-editor-uri',
@@ -408,7 +411,7 @@ describe('BlackholeForm', () => {
     })
 
     const user = userEvent.setup()
-    render(<BlackholeForm {...baseProps} isCreate />)
+    renderWithApp(<BlackholeForm {...baseProps} isCreate />)
 
     await user.click(screen.getByRole('button', { name: /submit/i }))
 
@@ -430,7 +433,7 @@ describe('BlackholeForm', () => {
     })
 
     const user = userEvent.setup()
-    render(<BlackholeForm {...baseProps} isCreate backlink="/list" />)
+    renderWithApp(<BlackholeForm {...baseProps} isCreate backlink="/list" />)
 
     await user.click(screen.getByRole('button', { name: /submit/i }))
 
@@ -449,7 +452,7 @@ describe('BlackholeForm', () => {
     })
 
     const user = userEvent.setup()
-    render(<BlackholeForm {...baseProps} isCreate={false} formsPrefills={editPrefills} />)
+    renderWithApp(<BlackholeForm {...baseProps} isCreate={false} formsPrefills={editPrefills} />)
 
     await user.click(screen.getByRole('button', { name: /submit/i }))
 
@@ -471,7 +474,7 @@ describe('BlackholeForm', () => {
     })
 
     const user = userEvent.setup()
-    render(<BlackholeForm {...baseProps} isCreate={false} formsPrefills={editPrefills} backlink="/details" />)
+    renderWithApp(<BlackholeForm {...baseProps} isCreate={false} formsPrefills={editPrefills} backlink="/details" />)
 
     await user.click(screen.getByRole('button', { name: /submit/i }))
 
@@ -486,7 +489,7 @@ describe('BlackholeForm', () => {
       data: { status: { allowed: args.verb === 'create' ? false : true } },
     }))
 
-    render(<BlackholeForm {...baseProps} isCreate />)
+    renderWithApp(<BlackholeForm {...baseProps} isCreate />)
 
     expect(screen.getByRole('button', { name: /submit/i })).toBeDisabled()
   })
@@ -496,13 +499,13 @@ describe('BlackholeForm', () => {
       data: { status: { allowed: args.verb === 'update' ? false : true } },
     }))
 
-    render(<BlackholeForm {...baseProps} isCreate={false} formsPrefills={editPrefills} />)
+    renderWithApp(<BlackholeForm {...baseProps} isCreate={false} formsPrefills={editPrefills} />)
 
     expect(screen.getByRole('button', { name: /submit/i })).toBeDisabled()
   })
 
   test('calls usePermissions with correct create/edit enablers and request identity fields', () => {
-    render(
+    renderWithApp(
       <BlackholeForm {...baseProps} isCreate urlParamsForPermissions={{ apiGroup: 'apps', plural: 'deployments' }} />,
     )
 
@@ -537,7 +540,7 @@ describe('BlackholeForm', () => {
     })
 
     const user = userEvent.setup()
-    render(
+    renderWithApp(
       <BlackholeForm
         {...baseProps}
         isCreate
@@ -573,7 +576,7 @@ describe('BlackholeForm', () => {
     })
 
     const user = userEvent.setup()
-    render(
+    renderWithApp(
       <BlackholeForm
         {...baseProps}
         isCreate
@@ -603,7 +606,7 @@ describe('BlackholeForm', () => {
     })
 
     const user = userEvent.setup()
-    render(<BlackholeForm {...baseProps} isCreate />)
+    renderWithApp(<BlackholeForm {...baseProps} isCreate />)
 
     const draftArgs = getObjectFormItemsDraftMock.mock.calls.at(-1)?.[0]
     expect(draftArgs).toBeTruthy()
@@ -648,7 +651,7 @@ describe('BlackholeForm', () => {
     })
 
     const user = userEvent.setup()
-    render(<BlackholeForm {...baseProps} isCreate />)
+    renderWithApp(<BlackholeForm {...baseProps} isCreate />)
 
     const draftArgs = getObjectFormItemsDraftMock.mock.calls.at(-1)?.[0]
     expect(draftArgs).toBeTruthy()
@@ -700,7 +703,7 @@ describe('BlackholeForm', () => {
     })
 
     const user = userEvent.setup()
-    render(<BlackholeForm {...baseProps} isCreate />)
+    renderWithApp(<BlackholeForm {...baseProps} isCreate />)
 
     await user.click(screen.getByTestId('yaml-editor-trigger-change'))
     await waitFor(() => expect(materializeAdditionalFromValuesMock).toHaveBeenCalled())
@@ -729,7 +732,7 @@ describe('BlackholeForm', () => {
     })
 
     const user = userEvent.setup()
-    render(<BlackholeForm {...baseProps} isCreate />)
+    renderWithApp(<BlackholeForm {...baseProps} isCreate />)
 
     const draftArgs = getObjectFormItemsDraftMock.mock.calls.at(-1)?.[0]
     expect(draftArgs).toBeTruthy()
@@ -781,7 +784,7 @@ describe('BlackholeForm', () => {
     })
 
     const user = userEvent.setup()
-    render(<BlackholeForm {...baseProps} isCreate />)
+    renderWithApp(<BlackholeForm {...baseProps} isCreate />)
 
     await user.click(screen.getByTestId('yaml-editor-trigger-paste'))
     await waitFor(() => expect(materializeAdditionalFromValuesMock).toHaveBeenCalled())
@@ -840,7 +843,7 @@ describe('BlackholeForm', () => {
     })
 
     const user = userEvent.setup()
-    render(<BlackholeForm {...baseProps} isCreate />)
+    renderWithApp(<BlackholeForm {...baseProps} isCreate />)
 
     const draftArgs = getObjectFormItemsDraftMock.mock.calls.at(-1)?.[0]
     expect(draftArgs).toBeTruthy()
@@ -884,7 +887,7 @@ describe('BlackholeForm', () => {
     })
 
     const user = userEvent.setup()
-    render(<BlackholeForm {...baseProps} isCreate />)
+    renderWithApp(<BlackholeForm {...baseProps} isCreate />)
 
     await user.click(screen.getByTestId('yaml-editor-trigger-array-add'))
     await user.click(screen.getByTestId('yaml-editor-trigger-array-remove'))
@@ -952,7 +955,7 @@ describe('BlackholeForm', () => {
     })
 
     const user = userEvent.setup()
-    render(<BlackholeForm {...baseProps} isCreate />)
+    renderWithApp(<BlackholeForm {...baseProps} isCreate />)
 
     const draftArgs = getObjectFormItemsDraftMock.mock.calls.at(-1)?.[0]
     expect(draftArgs).toBeTruthy()
@@ -1011,7 +1014,7 @@ describe('BlackholeForm', () => {
     })
 
     const user = userEvent.setup()
-    render(<BlackholeForm {...baseProps} isCreate />)
+    renderWithApp(<BlackholeForm {...baseProps} isCreate />)
 
     await user.click(screen.getByRole('button', { name: /submit/i }))
 
@@ -1027,7 +1030,7 @@ describe('BlackholeForm', () => {
     })
 
     const user = userEvent.setup()
-    render(<BlackholeForm {...baseProps} isCreate />)
+    renderWithApp(<BlackholeForm {...baseProps} isCreate />)
 
     await user.click(screen.getByRole('button', { name: /submit/i }))
 
@@ -1050,7 +1053,7 @@ describe('BlackholeForm', () => {
     })
 
     const user = userEvent.setup()
-    render(<BlackholeForm {...baseProps} isCreate />)
+    renderWithApp(<BlackholeForm {...baseProps} isCreate />)
 
     await user.click(screen.getByRole('button', { name: /submit/i }))
     expect(await screen.findByText(/boom/i)).toBeInTheDocument()
@@ -1065,7 +1068,7 @@ describe('BlackholeForm', () => {
   test('Cancel navigates to backlink', async () => {
     const user = userEvent.setup()
 
-    render(<BlackholeForm {...baseProps} backlink="/back" />)
+    renderWithApp(<BlackholeForm {...baseProps} backlink="/back" />)
 
     await user.click(screen.getByRole('button', { name: /cancel/i }))
 
@@ -1073,7 +1076,7 @@ describe('BlackholeForm', () => {
   })
 
   test('does not render Cancel button when backlink is not provided', () => {
-    render(<BlackholeForm {...baseProps} backlink={undefined} />)
+    renderWithApp(<BlackholeForm {...baseProps} backlink={undefined} />)
 
     expect(screen.queryByRole('button', { name: /cancel/i })).not.toBeInTheDocument()
   })
@@ -1091,7 +1094,7 @@ describe('BlackholeForm', () => {
     })
 
     const user = userEvent.setup()
-    render(
+    renderWithApp(
       <BlackholeForm
         {...baseProps}
         isCreate
@@ -1118,7 +1121,7 @@ describe('BlackholeForm', () => {
     })
 
     const user = userEvent.setup()
-    render(
+    renderWithApp(
       <BlackholeForm
         {...baseProps}
         isCreate
@@ -1145,7 +1148,7 @@ describe('BlackholeForm', () => {
     })
 
     const user = userEvent.setup()
-    render(
+    renderWithApp(
       <BlackholeForm
         {...baseProps}
         isCreate
@@ -1177,7 +1180,7 @@ describe('BlackholeForm', () => {
     })
 
     const user = userEvent.setup()
-    render(
+    renderWithApp(
       <BlackholeForm
         {...baseProps}
         isCreate
@@ -1202,7 +1205,7 @@ describe('BlackholeForm', () => {
 
   test('cancel button uses original backlink, not resolved', async () => {
     const user = userEvent.setup()
-    render(
+    renderWithApp(
       <BlackholeForm
         {...baseProps}
         isNameSpaced={['team-a']}

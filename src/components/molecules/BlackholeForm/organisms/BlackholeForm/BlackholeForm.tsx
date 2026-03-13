@@ -6,7 +6,7 @@
 /* eslint-disable no-console */
 import React, { FC, useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react'
 import { useDebounceCallback } from 'usehooks-ts'
-import { theme as antdtheme, Form, Button, Alert, Flex, Modal, Typography } from 'antd'
+import { App as AntdApp, theme as antdtheme, Form, Button, Alert, Flex, Modal, Typography } from 'antd'
 import { BugOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import axios, { isAxiosError } from 'axios'
@@ -104,6 +104,7 @@ export const BlackholeForm: FC<TBlackholeFormProps> = ({
   designNewLayoutHeight,
 }) => {
   const { token } = antdtheme.useToken()
+  const { notification: notificationApi } = AntdApp.useApp()
   const navigate = useNavigate()
 
   const [form] = Form.useForm()
@@ -281,10 +282,13 @@ export const BlackholeForm: FC<TBlackholeFormProps> = ({
             }/${plural}/${isCreate ? '' : name}`
 
             if (isCreate) {
-              createNewEntry({ endpoint, body })
-                // .then(res => {
-                .then(() => {
-                  // console.log(res)
+              createNewEntry<{ metadata?: { name?: string } }>({ endpoint, body })
+                .then(res => {
+                  const resName = res.data?.metadata?.name || name
+                  notificationApi.success({
+                    message: `${kind} "${resName}" created successfully`,
+                    placement: 'bottomRight',
+                  })
                   if (resolvedBacklink) {
                     navigate(resolvedBacklink)
                   }
@@ -299,10 +303,13 @@ export const BlackholeForm: FC<TBlackholeFormProps> = ({
                   setError(error)
                 })
             } else {
-              updateEntry({ endpoint, body })
-                // .then(res => {
-                .then(() => {
-                  // console.log(res)
+              updateEntry<{ metadata?: { name?: string } }>({ endpoint, body })
+                .then(res => {
+                  const resName = res.data?.metadata?.name || name
+                  notificationApi.success({
+                    message: `${kind} "${resName}" updated successfully`,
+                    placement: 'bottomRight',
+                  })
                   if (resolvedBacklink) {
                     navigate(resolvedBacklink)
                   }
