@@ -50,6 +50,7 @@ import { TBase64IconProps } from './Base64Icon'
 import { TUsageGraphCardProps } from './UsageGraphCard'
 import { TActionsDropdownProps } from './ActionsDropdown'
 import { TVolumesProps } from './Volumes'
+import { TAntdResultProps } from './AntdResult'
 
 export type TDynamicComponentsAppTypeMap = {
   antdText: TAntdTextProps
@@ -104,4 +105,5 @@ export type TDynamicComponentsAppTypeMap = {
   UsageGraphCard: TUsageGraphCardProps
   ActionsDropdown: TActionsDropdownProps
   Volumes: TVolumesProps
+  antdResult: TAntdResultProps
 }

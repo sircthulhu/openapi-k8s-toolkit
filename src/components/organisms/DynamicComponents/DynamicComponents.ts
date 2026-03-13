@@ -52,6 +52,7 @@ import {
   UsageGraphCard,
   ActionsDropdown,
   Volumes,
+  AntdResult,
 } from './molecules'
 import { TDynamicComponentsAppTypeMap } from './types'
 
@@ -108,4 +109,5 @@ export const DynamicComponents: TRendererComponents<TDynamicComponentsAppTypeMap
   UsageGraphCard,
   ActionsDropdown,
   Volumes,
+  antdResult: AntdResult,
 }
