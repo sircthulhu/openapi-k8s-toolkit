@@ -67,6 +67,7 @@ export const DynamicComponents: TRendererComponents<TDynamicComponentsAppTypeMap
   antdTabs: AntdTabs,
   antdButton: AntdButton,
   antdIcons: AntdIcons,
+  antdResult: AntdResult,
   partsOfUrl: PartsOfUrl,
   multiQuery: MultiQuery,
   parsedText: ParsedText,
@@ -109,5 +110,4 @@ export const DynamicComponents: TRendererComponents<TDynamicComponentsAppTypeMap
   UsageGraphCard,
   ActionsDropdown,
   Volumes,
-  antdResult: AntdResult,
 }

@@ -8,6 +8,7 @@ import {
   TAntdTabsProps,
   TAntdButtonProps,
   TAntdIconsProps,
+  TAntdResultProps,
 } from './antdComponents'
 import { TDefaultDivProps } from './DefaultDiv'
 import { TPartsOfUrlProps } from './partsOfUrl'
@@ -50,7 +51,6 @@ import { TBase64IconProps } from './Base64Icon'
 import { TUsageGraphCardProps } from './UsageGraphCard'
 import { TActionsDropdownProps } from './ActionsDropdown'
 import { TVolumesProps } from './Volumes'
-import { TAntdResultProps } from './AntdResult'
 
 export type TDynamicComponentsAppTypeMap = {
   antdText: TAntdTextProps

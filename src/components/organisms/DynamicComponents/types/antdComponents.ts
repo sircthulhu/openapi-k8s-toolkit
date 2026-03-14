@@ -1,3 +1,4 @@
+import { CSSProperties } from 'react'
 import { CardProps, FlexProps, RowProps, ColProps, ButtonProps, TabsProps } from 'antd'
 import type { TextProps } from 'antd/es/typography/Text'
 import type { LinkProps } from 'antd/es/typography/Link'
@@ -38,4 +39,12 @@ export type TAntdIconsProps = {
   iconName: Exclude<keyof typeof AntIcons, 'createFromIconfontCN'> // https://5x.ant.design/components/icon/
   iconProps?: AntdIconProps // color can be like token.colorSuccess
   containerStyle?: React.CSSProperties
+}
+
+export type TAntdResultProps = {
+  id: number | string
+  status?: 'success' | 'error' | 'info' | 'warning' | '403' | '404' | '500' | 403 | 404 | 500
+  title?: string
+  subTitle?: string
+  style?: CSSProperties
 }
