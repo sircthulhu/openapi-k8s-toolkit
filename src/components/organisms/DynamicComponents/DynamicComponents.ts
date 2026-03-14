@@ -52,6 +52,7 @@ import {
   UsageGraphCard,
   ActionsDropdown,
   Volumes,
+  AntdResult,
 } from './molecules'
 import { TDynamicComponentsAppTypeMap } from './types'
 
@@ -66,6 +67,7 @@ export const DynamicComponents: TRendererComponents<TDynamicComponentsAppTypeMap
   antdTabs: AntdTabs,
   antdButton: AntdButton,
   antdIcons: AntdIcons,
+  antdResult: AntdResult,
   partsOfUrl: PartsOfUrl,
   multiQuery: MultiQuery,
   parsedText: ParsedText,

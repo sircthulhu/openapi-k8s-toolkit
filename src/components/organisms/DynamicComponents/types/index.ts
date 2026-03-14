@@ -8,6 +8,7 @@ import {
   TAntdTabsProps,
   TAntdButtonProps,
   TAntdIconsProps,
+  TAntdResultProps,
 } from './antdComponents'
 import { TDefaultDivProps } from './DefaultDiv'
 import { TPartsOfUrlProps } from './partsOfUrl'
@@ -104,4 +105,5 @@ export type TDynamicComponentsAppTypeMap = {
   UsageGraphCard: TUsageGraphCardProps
   ActionsDropdown: TActionsDropdownProps
   Volumes: TVolumesProps
+  antdResult: TAntdResultProps
 }
