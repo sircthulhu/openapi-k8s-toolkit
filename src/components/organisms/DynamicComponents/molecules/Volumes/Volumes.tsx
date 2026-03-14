@@ -76,6 +76,7 @@ export const Volumes: FC<{ data: TDynamicComponentsAppTypeMap['Volumes']; childr
     baseFactoryClusterSceopedBuiltinKey,
     baseNavigationPluralName,
     baseNavigationSpecificName,
+    containerFactoryKey,
   } = data
   const theme = useTheme()
   const partsOfUrl = usePartsOfUrl()
@@ -116,7 +117,7 @@ export const Volumes: FC<{ data: TDynamicComponentsAppTypeMap['Volumes']; childr
       ? navigationDataArr.items[0].spec?.baseFactoriesMapping
       : undefined
 
-  const customColumns = useMemo(() => buildCustomColumns(), [])
+  const customColumns = useMemo(() => buildCustomColumns(containerFactoryKey), [containerFactoryKey])
 
   const dataSourceWithoutHref = useMemo<TVolumeRowWithoutHref[]>(() => {
     if (isMultiQueryLoading || isMultiQueryErrors || !multiQueryData) return []

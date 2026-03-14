@@ -20,6 +20,20 @@ type TCapturedEnrichedTableProps = {
         }>
       }
     }
+    containerName: {
+      customProps: {
+        items: Array<{
+          children: Array<{
+            type?: string
+            data?: {
+              href?: string
+              text?: string
+              tooltip?: string
+            }
+          }>
+        }>
+      }
+    }
   }
 }
 
@@ -69,6 +83,16 @@ const getTypeHrefTemplate = (props: TCapturedEnrichedTableProps): string => {
 
   return linkItem!.data.href
 }
+
+const getContainerHrefTemplate = (props: TCapturedEnrichedTableProps): string => {
+  const linkItem = props.additionalPrinterColumnsKeyTypeProps.containerName.customProps.items[0]?.children[1]
+  expect(linkItem?.data?.href).toBeDefined()
+
+  return linkItem!.data!.href!
+}
+
+const getContainerColumnItem = (props: TCapturedEnrichedTableProps) =>
+  props.additionalPrinterColumnsKeyTypeProps.containerName.customProps.items[0]?.children[1]
 
 const baseData = {
   id: 'volumes',
@@ -177,6 +201,30 @@ describe('Volumes', () => {
           typeHref: '/openapi-ui/cluster-a/forced-ns/factory/secret-details/v1/secrets/sec-one',
         }),
       ]),
+    )
+  })
+
+  test('uses containerFactoryKey for container links when provided', () => {
+    render(<Volumes data={{ ...baseData, containerFactoryKey: 'factory-container-runtime' }} />)
+
+    const props = getCapturedProps()
+    expect(getContainerHrefTemplate(props)).toBe(
+      "/openapi-ui/{2}/{3}/factory/factory-container-runtime/v1/containers/{reqsJsonPath[0]['.podName']['-']}/{reqsJsonPath[0]['.containerName']['-']}",
+    )
+  })
+
+  test('renders container name as parsed text with tooltip when containerFactoryKey is missing', () => {
+    render(<Volumes data={baseData} />)
+
+    const props = getCapturedProps()
+    expect(getContainerColumnItem(props)).toEqual(
+      expect.objectContaining({
+        type: 'parsedText',
+        data: expect.objectContaining({
+          text: "{reqsJsonPath[0]['.containerName']['-']}",
+          tooltip: "{reqsJsonPath[0]['.containerName']['-']}",
+        }),
+      }),
     )
   })
 

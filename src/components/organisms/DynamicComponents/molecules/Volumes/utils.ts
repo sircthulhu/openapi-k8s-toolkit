@@ -161,7 +161,7 @@ export const getVolumeTypeMetas = (volumeName: string, volumesMap: Record<string
   return [getVolumeTypeMeta(volumeName, vol)]
 }
 
-export const buildCustomColumns = (): TAdditionalPrinterColumnsKeyTypeProps => ({
+export const buildCustomColumns = (containerFactoryKey?: string): TAdditionalPrinterColumnsKeyTypeProps => ({
   mountPath: {
     type: 'factory',
     customProps: {
@@ -268,14 +268,21 @@ export const buildCustomColumns = (): TAdditionalPrinterColumnsKeyTypeProps => (
               },
             },
             {
-              type: 'antdLink',
-              data: {
-                href: "/openapi-ui/{2}/{3}/factory/container-details/v1/containers/{reqsJsonPath[0]['.podName']['-']}/{reqsJsonPath[0]['.containerName']['-']}",
-                id: 'container-link',
-                text: "{reqsJsonPath[0]['.containerName']['-']}",
-                title: "{reqsJsonPath[0]['.containerName']['-']}",
-                style: ellipsisStyle,
-              },
+              type: containerFactoryKey ? 'antdLink' : 'parsedText',
+              data: containerFactoryKey
+                ? {
+                    href: `/openapi-ui/{2}/{3}/factory/${containerFactoryKey}/v1/containers/{reqsJsonPath[0]['.podName']['-']}/{reqsJsonPath[0]['.containerName']['-']}`,
+                    id: 'container-link',
+                    text: "{reqsJsonPath[0]['.containerName']['-']}",
+                    title: "{reqsJsonPath[0]['.containerName']['-']}",
+                    style: ellipsisStyle,
+                  }
+                : {
+                    id: 'container-text',
+                    text: "{reqsJsonPath[0]['.containerName']['-']}",
+                    tooltip: "{reqsJsonPath[0]['.containerName']['-']}",
+                    style: ellipsisStyle,
+                  },
             },
           ],
         },

@@ -16,4 +16,5 @@ export type TVolumesProps = {
   baseFactoryClusterSceopedBuiltinKey: string
   baseNavigationPluralName: string
   baseNavigationSpecificName: string
+  containerFactoryKey?: string
 }
