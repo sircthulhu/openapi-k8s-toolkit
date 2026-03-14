@@ -2,170 +2,39 @@
 /* eslint-disable no-console */
 import React, { FC, Suspense, useMemo } from 'react'
 import jp from 'jsonpath'
-import { TAdditionalPrinterColumnsKeyTypeProps, TAdditionalPrinterColumnsUndefinedValues } from 'localTypes/richTable'
+import { useK8sSmartResource } from 'hooks/useK8sSmartResource'
+import { TAdditionalPrinterColumnsUndefinedValues } from 'localTypes/richTable'
+import { TNavigationResource } from 'localTypes/navigations'
 import { EnrichedTable } from 'components/molecules'
 import { TDynamicComponentsAppTypeMap } from '../../types'
 import { useMultiQuery } from '../../../DynamicRendererWithProviders/providers/hybridDataProvider'
+import { usePartsOfUrl } from '../../../DynamicRendererWithProviders/providers/partsOfUrlContext'
 import { useTheme } from '../../../DynamicRendererWithProviders/providers/themeContext'
+import { parseAll } from '../utils'
+import {
+  buildCustomColumns,
+  getVolumeFactoryKey,
+  getVolumeResourceLinkPrefix,
+  getVolumeTypeHref,
+  getVolumeTypeMetas,
+  isLinkableVolumeTypeKey,
+  isPendingLinkSegment,
+  TVolumeTypeMeta,
+} from './utils'
 
-const ellipsisStyle = {
-  display: 'inline-block',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap' as const,
-  verticalAlign: 'bottom' as const,
+type TVolumeRow = TVolumeTypeMeta & {
+  name: string
+  mountPath: string
+  subPath: string
+  containerName: string
+  podName: string
+  namespace: string
+  access: string
+  key: string
+  typeHref: string
 }
 
-const VOLUME_TYPE_LABELS: Record<string, string> = {
-  awsElasticBlockStore: 'AwsElasticBlockStore',
-  azureDisk: 'AzureDisk',
-  azureFile: 'AzureFile',
-  cephfs: 'Cephfs',
-  cinder: 'Cinder',
-  configMap: 'ConfigMap',
-  csi: 'CSI',
-  downwardAPI: 'DownwardAPI',
-  emptyDir: 'EmptyDir',
-  ephemeral: 'Ephemeral',
-  fc: 'FC',
-  flexVolume: 'FlexVolume',
-  flocker: 'Flocker',
-  gcePersistentDisk: 'GcePersistentDisk',
-  gitRepo: 'GitRepo',
-  glusterfs: 'Glusterfs',
-  hostPath: 'HostPath',
-  image: 'Image',
-  iscsi: 'ISCSI',
-  nfs: 'NFS',
-  persistentVolumeClaim: 'PersistentVolumeClaim',
-  photonPersistentDisk: 'PhotonPersistentDisk',
-  portworxVolume: 'PortworxVolume',
-  projected: 'Projected',
-  quobyte: 'Quobyte',
-  rbd: 'RBD',
-  scaleIO: 'ScaleIO',
-  secret: 'Secret',
-  storageos: 'StorageOS',
-  vsphereVolume: 'VsphereVolume',
-}
-
-type TVolumeTypeMeta = {
-  typeResource: string
-  typeKey: string
-  typeName: string
-}
-
-const getVolumeDisplayName = (typeKey: string, volumeConfig: any, fallbackName: string): string => {
-  switch (typeKey) {
-    case 'configMap':
-      return volumeConfig?.name || fallbackName
-    case 'secret':
-      return volumeConfig?.secretName || fallbackName
-    case 'persistentVolumeClaim':
-      return volumeConfig?.claimName || fallbackName
-    case 'azureDisk':
-      return volumeConfig?.diskName || fallbackName
-    case 'csi':
-      return volumeConfig?.driver || fallbackName
-    case 'image':
-      return volumeConfig?.reference || fallbackName
-    case 'projected':
-      return Array.isArray(volumeConfig?.sources) && volumeConfig.sources.length > 0
-        ? `${volumeConfig.sources.length} sources`
-        : fallbackName
-    default:
-      return (
-        volumeConfig?.volumeID ||
-        volumeConfig?.path ||
-        volumeConfig?.targetWWNs?.[0] ||
-        volumeConfig?.datasetName ||
-        volumeConfig?.repository ||
-        volumeConfig?.server ||
-        volumeConfig?.name ||
-        fallbackName
-      )
-  }
-}
-
-const getVolumeTypeMeta = (volumeName: string, vol: any): TVolumeTypeMeta => {
-  if (!vol) return { typeResource: 'Volume', typeKey: 'volume', typeName: volumeName }
-
-  const matchedType = Object.keys(VOLUME_TYPE_LABELS).find(typeKey => Boolean(vol[typeKey]))
-  if (matchedType) {
-    return {
-      typeResource: VOLUME_TYPE_LABELS[matchedType],
-      typeKey: matchedType,
-      typeName: getVolumeDisplayName(matchedType, vol[matchedType], volumeName),
-    }
-  }
-
-  return { typeResource: 'Volume', typeKey: 'volume', typeName: volumeName }
-}
-
-const getProjectedSourceMeta = (projectedSource: any, fallbackName: string): TVolumeTypeMeta => {
-  if (!projectedSource || typeof projectedSource !== 'object') {
-    return { typeResource: 'Projected', typeKey: 'projected', typeName: fallbackName }
-  }
-
-  const projectedTypeKey = Object.keys(projectedSource).find(typeKey =>
-    ['configMap', 'secret', 'downwardAPI', 'serviceAccountToken', 'clusterTrustBundle'].includes(typeKey),
-  )
-
-  if (!projectedTypeKey) {
-    return { typeResource: 'Projected', typeKey: 'projected', typeName: fallbackName }
-  }
-
-  const sourceConfig = projectedSource[projectedTypeKey]
-
-  if (projectedTypeKey === 'configMap') {
-    return {
-      typeResource: 'ConfigMap',
-      typeKey: 'configMap',
-      typeName: sourceConfig?.name || fallbackName,
-    }
-  }
-
-  if (projectedTypeKey === 'secret') {
-    return {
-      typeResource: 'Secret',
-      typeKey: 'secret',
-      typeName: sourceConfig?.name || fallbackName,
-    }
-  }
-
-  if (projectedTypeKey === 'downwardAPI') {
-    return {
-      typeResource: 'DownwardAPI',
-      typeKey: 'downwardAPI',
-      typeName: sourceConfig?.items?.[0]?.path || fallbackName,
-    }
-  }
-
-  if (projectedTypeKey === 'serviceAccountToken') {
-    return {
-      typeResource: 'ServiceAccountToken',
-      typeKey: 'serviceAccountToken',
-      typeName: sourceConfig?.path || fallbackName,
-    }
-  }
-
-  return {
-    typeResource: 'ClusterTrustBundle',
-    typeKey: 'clusterTrustBundle',
-    typeName: sourceConfig?.path || sourceConfig?.name || fallbackName,
-  }
-}
-
-const getVolumeTypeMetas = (volumeName: string, volumesMap: Record<string, any>): TVolumeTypeMeta[] => {
-  const vol = volumesMap[volumeName]
-  if (!vol) return [getVolumeTypeMeta(volumeName, vol)]
-
-  if (Array.isArray(vol?.projected?.sources) && vol.projected.sources.length > 0) {
-    return vol.projected.sources.map((source: any) => getProjectedSourceMeta(source, volumeName))
-  }
-
-  return [getVolumeTypeMeta(volumeName, vol)]
-}
+type TVolumeRowWithoutHref = Omit<TVolumeRow, 'typeHref'>
 
 const columns = [
   { title: 'Name', dataIndex: 'name', key: 'name' },
@@ -189,169 +58,67 @@ const undefinedValues: TAdditionalPrinterColumnsUndefinedValues = [
 const withUndefinedFallback = <T,>(value: T | null | undefined, fallback = '-'): T | string =>
   value === undefined || value === null || value === '' ? fallback : value
 
-const customColumns: TAdditionalPrinterColumnsKeyTypeProps = {
-  mountPath: {
-    type: 'factory',
-    customProps: {
-      disableEventBubbling: true,
-      items: [
-        {
-          type: 'parsedText',
-          data: {
-            id: 'mountPath-text',
-            text: "{reqsJsonPath[0]['.mountPath']['-']}",
-            tooltip: "{reqsJsonPath[0]['.mountPath']['-']}",
-            style: ellipsisStyle,
-          },
-        },
-      ],
-    },
-  },
-  typeName: {
-    type: 'factory',
-    customProps: {
-      disableEventBubbling: true,
-      items: [
-        {
-          type: 'antdFlex',
-          data: {
-            align: 'center',
-            direction: 'row',
-            gap: 6,
-            id: 'resource-badge-link-row',
-          },
-          children: [
-            {
-              type: 'ResourceBadge',
-              data: {
-                id: 'typeName-badge',
-                value: "{reqsJsonPath[0]['.typeResource']['-']}",
-              },
-            },
-            {
-              type: 'VisibilityContainer',
-              data: {
-                id: 'typeName-link-visible',
-                value: "{reqsJsonPath[0]['.typeKey']['-']}",
-                criteria: 'equals',
-                valueToCompare: ['configMap', 'secret'],
-              },
-              children: [
-                {
-                  type: 'VisibilityContainer',
-                  data: {
-                    id: 'typeName-configmap-link-visible',
-                    value: "{reqsJsonPath[0]['.typeKey']['-']}",
-                    criteria: 'equals',
-                    valueToCompare: ['configMap'],
-                  },
-                  children: [
-                    {
-                      type: 'antdLink',
-                      data: {
-                        href: "/openapi-ui/{2}/{3}/factory/configmap-details/v1/configmaps/{reqsJsonPath[0]['.typeName']['-']}",
-                        id: 'typeName-link',
-                        text: "{reqsJsonPath[0]['.typeName']['-']}",
-                        title: "{reqsJsonPath[0]['.typeName']['-']}",
-                        style: ellipsisStyle,
-                      },
-                    },
-                  ],
-                },
-                {
-                  type: 'VisibilityContainer',
-                  data: {
-                    id: 'typeName-secret-link-visible',
-                    value: "{reqsJsonPath[0]['.typeKey']['-']}",
-                    criteria: 'equals',
-                    valueToCompare: ['secret'],
-                  },
-                  children: [
-                    {
-                      type: 'antdLink',
-                      data: {
-                        href: "/openapi-ui/{2}/{3}/factory/secret-details/v1/secrets/{reqsJsonPath[0]['.typeName']['-']}",
-                        id: 'typeName-secret-link',
-                        text: "{reqsJsonPath[0]['.typeName']['-']}",
-                        title: "{reqsJsonPath[0]['.typeName']['-']}",
-                        style: ellipsisStyle,
-                      },
-                    },
-                  ],
-                },
-              ],
-            },
-            {
-              type: 'VisibilityContainer',
-              data: {
-                id: 'typeName-text-visible',
-                value: "{reqsJsonPath[0]['.typeKey']['-']}",
-                criteria: 'notEquals',
-                valueToCompare: ['configMap', 'secret'],
-              },
-              children: [
-                {
-                  type: 'parsedText',
-                  data: {
-                    id: 'typeName-text',
-                    text: "{reqsJsonPath[0]['.typeName']['-']}",
-                    tooltip: "{reqsJsonPath[0]['.typeName']['-']}",
-                    style: ellipsisStyle,
-                  },
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    },
-  },
-  containerName: {
-    type: 'factory',
-    customProps: {
-      disableEventBubbling: true,
-      items: [
-        {
-          type: 'antdFlex',
-          data: {
-            align: 'center',
-            direction: 'row',
-            gap: 6,
-            id: 'resource-badge-link-row',
-          },
-          children: [
-            {
-              type: 'ResourceBadge',
-              data: {
-                id: 'typeName-badge',
-                value: 'Container',
-              },
-            },
-            {
-              type: 'antdLink',
-              data: {
-                href: "/openapi-ui/{2}/{3}/factory/container-details/v1/containers/{reqsJsonPath[0]['.podName']['-']}/{reqsJsonPath[0]['.containerName']['-']}",
-                id: 'container-link',
-                text: "{reqsJsonPath[0]['.containerName']['-']}",
-                title: "{reqsJsonPath[0]['.containerName']['-']}",
-                style: ellipsisStyle,
-              },
-            },
-          ],
-        },
-      ],
-    },
-  },
-}
-
 export const Volumes: FC<{ data: TDynamicComponentsAppTypeMap['Volumes']; children?: any }> = ({ data, children }) => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { id, reqIndex, jsonPathToSpec, jsonPathToPodName, errorText, containerStyle } = data
+  const {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    id,
+    baseprefix,
+    cluster,
+    reqIndex,
+    jsonPathToSpec,
+    jsonPathToPodName,
+    forcedNamespace,
+    errorText,
+    containerStyle,
+    baseFactoryNamespacedAPIKey,
+    baseFactoryClusterSceopedAPIKey,
+    baseFactoryNamespacedBuiltinKey,
+    baseFactoryClusterSceopedBuiltinKey,
+    baseNavigationPluralName,
+    baseNavigationSpecificName,
+  } = data
   const theme = useTheme()
+  const partsOfUrl = usePartsOfUrl()
 
   const { data: multiQueryData, isLoading: isMultiQueryLoading, isError: isMultiQueryErrors, errors } = useMultiQuery()
 
-  const dataSource = useMemo(() => {
+  const replaceValues = partsOfUrl.partsOfUrl.reduce<Record<string, string | undefined>>((acc, value, index) => {
+    acc[index.toString()] = value
+    return acc
+  }, {})
+
+  const clusterPrepared = parseAll({ text: cluster, replaceValues, multiQueryData })
+
+  const forcedNamespacePrepared = forcedNamespace
+    ? parseAll({
+        text: forcedNamespace,
+        replaceValues,
+        multiQueryData,
+      })
+    : undefined
+
+  const {
+    data: navigationDataArr,
+    isLoading: isNavigationLoading,
+    isError: isNavigationError,
+  } = useK8sSmartResource<{
+    items: TNavigationResource[]
+  }>({
+    cluster: clusterPrepared,
+    apiGroup: 'front.in-cloud.io',
+    apiVersion: 'v1alpha1',
+    plural: baseNavigationPluralName,
+    fieldSelector: `metadata.name=${baseNavigationSpecificName}`,
+  })
+
+  const baseFactoriesMapping =
+    navigationDataArr && navigationDataArr.items && navigationDataArr.items.length > 0
+      ? navigationDataArr.items[0].spec?.baseFactoriesMapping
+      : undefined
+
+  const customColumns = useMemo(() => buildCustomColumns(), [])
+
+  const dataSourceWithoutHref = useMemo<TVolumeRowWithoutHref[]>(() => {
     if (isMultiQueryLoading || isMultiQueryErrors || !multiQueryData) return []
 
     const jsonRoot = multiQueryData[`req${reqIndex}`] as any
@@ -360,7 +127,9 @@ export const Volumes: FC<{ data: TDynamicComponentsAppTypeMap['Volumes']; childr
     const specResult = jp.query(jsonRoot || {}, `$${jsonPathToSpec}`)
     const spec: any = specResult?.[0]
     if (!spec) return []
-    const namespace = jsonRoot?.metadata?.namespace || spec?.metadata?.namespace || ''
+
+    const fallbackNamespace = jsonRoot?.metadata?.namespace || spec?.metadata?.namespace || ''
+    const effectiveNamespace = forcedNamespacePrepared || fallbackNamespace
     const podNameFromPath = jsonPathToPodName ? jp.query(jsonRoot || {}, `$${jsonPathToPodName}`)?.[0] : undefined
     const podName = podNameFromPath || jsonRoot?.metadata?.name || spec?.metadata?.name || '-'
 
@@ -376,24 +145,142 @@ export const Volumes: FC<{ data: TDynamicComponentsAppTypeMap['Volumes']; childr
     return containers.flatMap((container: any, cIdx: number) => {
       const mounts: any[] = Array.isArray(container.volumeMounts) ? container.volumeMounts : []
       return mounts.flatMap((mount: any, mIdx: number) =>
-        getVolumeTypeMetas(mount.name, volumesMap).map((typeMeta: TVolumeTypeMeta, typeIdx: number) => ({
-          ...typeMeta,
-          ...mount,
-          name: withUndefinedFallback(mount.name),
-          mountPath: withUndefinedFallback(mount.mountPath),
-          subPath: withUndefinedFallback(mount.subPath),
-          typeName: withUndefinedFallback(typeMeta.typeName),
-          containerName: withUndefinedFallback(container.name || `container-${cIdx}`),
-          podName,
-          namespace,
-          access: withUndefinedFallback(mount.readOnly ? 'RO' : 'RW'),
-          key: `${cIdx}-${mIdx}-${typeIdx}`,
-        })),
+        getVolumeTypeMetas(mount.name, volumesMap).map((typeMeta: TVolumeTypeMeta, typeIdx: number) => {
+          const typeName = String(withUndefinedFallback(typeMeta.typeName))
+
+          return {
+            ...typeMeta,
+            ...mount,
+            name: String(withUndefinedFallback(mount.name)),
+            mountPath: String(withUndefinedFallback(mount.mountPath)),
+            subPath: String(withUndefinedFallback(mount.subPath)),
+            typeName,
+            containerName: String(withUndefinedFallback(container.name || `container-${cIdx}`)),
+            podName: String(podName),
+            namespace: String(effectiveNamespace),
+            access: String(withUndefinedFallback(mount.readOnly ? 'RO' : 'RW')),
+            key: `${cIdx}-${mIdx}-${typeIdx}`,
+          }
+        }),
       )
     })
-  }, [multiQueryData, isMultiQueryLoading, isMultiQueryErrors, reqIndex, jsonPathToSpec, jsonPathToPodName])
+  }, [
+    multiQueryData,
+    isMultiQueryLoading,
+    isMultiQueryErrors,
+    reqIndex,
+    jsonPathToSpec,
+    jsonPathToPodName,
+    forcedNamespacePrepared,
+  ])
 
-  if (isMultiQueryLoading) {
+  const hasLinkableVolumeTypes = dataSourceWithoutHref.some(({ typeKey }) => isLinkableVolumeTypeKey(typeKey))
+
+  const linkableNamespace = dataSourceWithoutHref.find(({ typeKey }) => isLinkableVolumeTypeKey(typeKey))?.namespace
+
+  const configMapFactoryKey =
+    hasLinkableVolumeTypes && !isNavigationLoading && !isNavigationError
+      ? getVolumeFactoryKey({
+          apiGroup: undefined,
+          apiVersion: 'v1',
+          resource: 'configmaps',
+          namespace: linkableNamespace,
+          baseFactoriesMapping,
+          baseFactoryNamespacedAPIKey,
+          baseFactoryClusterSceopedAPIKey,
+          baseFactoryNamespacedBuiltinKey,
+          baseFactoryClusterSceopedBuiltinKey,
+        })
+      : undefined
+
+  const secretFactoryKey =
+    hasLinkableVolumeTypes && !isNavigationLoading && !isNavigationError
+      ? getVolumeFactoryKey({
+          apiGroup: undefined,
+          apiVersion: 'v1',
+          resource: 'secrets',
+          namespace: linkableNamespace,
+          baseFactoriesMapping,
+          baseFactoryNamespacedAPIKey,
+          baseFactoryClusterSceopedAPIKey,
+          baseFactoryNamespacedBuiltinKey,
+          baseFactoryClusterSceopedBuiltinKey,
+        })
+      : undefined
+
+  const hasPendingLinkPrefixInputs =
+    hasLinkableVolumeTypes &&
+    (isPendingLinkSegment(clusterPrepared) ||
+      isPendingLinkSegment(linkableNamespace) ||
+      isPendingLinkSegment(configMapFactoryKey) ||
+      isPendingLinkSegment(secretFactoryKey))
+
+  const isLinkPrefixLoading =
+    hasLinkableVolumeTypes &&
+    !isMultiQueryErrors &&
+    !isNavigationError &&
+    (isNavigationLoading || hasPendingLinkPrefixInputs)
+
+  const resourceLinkPrefixes = useMemo<Partial<Record<'configMap' | 'secret', string>> | undefined>(() => {
+    if (!hasLinkableVolumeTypes || isLinkPrefixLoading) {
+      return undefined
+    }
+
+    return {
+      configMap:
+        getVolumeResourceLinkPrefix({
+          baseprefix,
+          cluster: clusterPrepared,
+          namespace: linkableNamespace,
+          apiGroupVersion: 'v1',
+          pluralName: 'configmaps',
+          baseFactoryNamespacedAPIKey,
+          baseFactoryClusterSceopedAPIKey,
+          baseFactoryNamespacedBuiltinKey,
+          baseFactoryClusterSceopedBuiltinKey,
+          baseFactoriesMapping,
+        }) || '',
+      secret:
+        getVolumeResourceLinkPrefix({
+          baseprefix,
+          cluster: clusterPrepared,
+          namespace: linkableNamespace,
+          apiGroupVersion: 'v1',
+          pluralName: 'secrets',
+          baseFactoryNamespacedAPIKey,
+          baseFactoryClusterSceopedAPIKey,
+          baseFactoryNamespacedBuiltinKey,
+          baseFactoryClusterSceopedBuiltinKey,
+          baseFactoriesMapping,
+        }) || '',
+    }
+  }, [
+    hasLinkableVolumeTypes,
+    isLinkPrefixLoading,
+    baseprefix,
+    clusterPrepared,
+    linkableNamespace,
+    baseFactoryNamespacedAPIKey,
+    baseFactoryClusterSceopedAPIKey,
+    baseFactoryNamespacedBuiltinKey,
+    baseFactoryClusterSceopedBuiltinKey,
+    baseFactoriesMapping,
+  ])
+
+  const dataSource = useMemo<TVolumeRow[]>(
+    () =>
+      dataSourceWithoutHref.map(row => ({
+        ...row,
+        typeHref: getVolumeTypeHref({
+          typeKey: row.typeKey,
+          typeName: row.typeName,
+          resourceLinkPrefixes,
+        }),
+      })),
+    [dataSourceWithoutHref, resourceLinkPrefixes],
+  )
+
+  if (isMultiQueryLoading || isLinkPrefixLoading) {
     return <div>Loading...</div>
   }
 
@@ -410,7 +297,6 @@ export const Volumes: FC<{ data: TDynamicComponentsAppTypeMap['Volumes']; childr
   const jsonRoot = multiQueryData[`req${reqIndex}`]
 
   if (jsonRoot === undefined) {
-    // console.log(`Volumes: ${id}: No root for json path`)
     return <div style={containerStyle}>{errorText}</div>
   }
 
