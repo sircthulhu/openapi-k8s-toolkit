@@ -18,7 +18,7 @@ export const AntdLink: FC<{ data: TDynamicComponentsAppTypeMap['antdLink']; chil
   const navigate = useNavigate()
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { id, text, href, ...linkProps } = data
+  const { id, text, href, title, ...linkProps } = data
 
   const replaceValues = partsOfUrl.partsOfUrl.reduce<Record<string, string | undefined>>((acc, value, index) => {
     acc[index.toString()] = value
@@ -27,7 +27,7 @@ export const AntdLink: FC<{ data: TDynamicComponentsAppTypeMap['antdLink']; chil
 
   const textPrepared = parseAll({ text, replaceValues, multiQueryData })
   const tooltipPrepared =
-    typeof linkProps.title === 'string' ? parseAll({ text: linkProps.title, replaceValues, multiQueryData }) : undefined
+    typeof title === 'string' ? parseAll({ text: title, replaceValues, multiQueryData }) : undefined
 
   const hrefPrepared = parseAll({ text: href, replaceValues, multiQueryData })
   const isExternal = isExternalHref(hrefPrepared)
