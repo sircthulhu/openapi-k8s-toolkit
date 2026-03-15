@@ -14,7 +14,7 @@ type TInner = TDynamicComponentsAppTypeMap['antdResult']
 type TProviderArgs = {
   isLoading: boolean
   isError: boolean
-  errors: { message: string }[]
+  errors: ({ message: string } | null)[]
   multiQueryData: Record<string, unknown> | null
   partsOfUrl: string[]
 }
@@ -26,10 +26,11 @@ const meta: Meta<TArgs> = {
   component: AntdResult as any,
   argTypes: {
     id: { control: 'text', description: 'data.id' },
+    reqIndex: { control: 'number', description: 'data.reqIndex — auto-detect error from this request index' },
     status: {
       control: { type: 'select' },
-      options: ['success', 'error', 'info', 'warning', '403', '404', '500'],
-      description: 'data.status — Ant Design Result status',
+      options: [undefined, 'success', 'error', 'info', 'warning', '403', '404', '500'],
+      description: 'data.status — override or manual status',
     },
     title: { control: 'text', description: 'data.title (supports template syntax)' },
     subTitle: { control: 'text', description: 'data.subTitle (supports template syntax)' },
@@ -58,6 +59,7 @@ const meta: Meta<TArgs> = {
           <AntdResult
             data={{
               id: args.id,
+              reqIndex: args.reqIndex,
               status: args.status,
               title: args.title,
               subTitle: args.subTitle,
@@ -75,10 +77,11 @@ const meta: Meta<TArgs> = {
           type: 'antdResult',
           data: {
             id: args.id,
-            status: args.status,
-            title: args.title,
-            subTitle: args.subTitle,
-            style: args.style,
+            ...(args.reqIndex !== undefined && { reqIndex: args.reqIndex }),
+            ...(args.status && { status: args.status }),
+            ...(args.title && { title: args.title }),
+            ...(args.subTitle && { subTitle: args.subTitle }),
+            ...(args.style && { style: args.style }),
           },
         })}
         theme={'vs-dark'}
@@ -98,9 +101,12 @@ export default meta
 
 type Story = StoryObj<TArgs>
 
+// ── Manual mode stories ─────────────────────────────────────────
+
 export const NotFound: Story = {
   args: {
     id: 'result-404',
+    reqIndex: undefined,
     status: '404',
     title: 'Not Found',
     subTitle: 'The requested resource does not exist.',
@@ -163,6 +169,37 @@ export const WithTemplates: Story = {
     subTitle: 'Namespace: {0}',
     multiQueryData: { req0: { metadata: { name: 'my-pod-xyz' } } },
     partsOfUrl: ['default'],
+  },
+}
+
+// ── Auto-detect mode stories ────────────────────────────────────
+
+export const AutoDetectError: Story = {
+  name: 'Auto-detect: request failed',
+  args: {
+    id: 'result-auto-error',
+    reqIndex: 0,
+    status: undefined,
+    title: undefined,
+    subTitle: undefined,
+    style: undefined,
+
+    isLoading: false,
+    isError: true,
+    errors: [{ message: 'Request failed with status code 403' }],
+    multiQueryData: null,
+    partsOfUrl: [],
+  },
+}
+
+export const AutoDetectNoError: Story = {
+  name: 'Auto-detect: request succeeded (renders nothing)',
+  args: {
+    ...AutoDetectError.args,
+    id: 'result-auto-ok',
+    isError: false,
+    errors: [null],
+    multiQueryData: { req0: { metadata: { name: 'some-pod' } } },
   },
 }
 
