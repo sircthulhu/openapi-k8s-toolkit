@@ -44,6 +44,10 @@ export type TAntdIconsProps = {
 export type TAntdResultProps = {
   id: number | string
   reqIndex?: number
+  /** Treat an empty K8s list (items: []) as "404 Not Found". Useful for detail
+   *  pages that fetch a single resource via fieldSelector — the K8s API returns
+   *  200 with an empty items array instead of 404 when the resource is missing. */
+  emptyAsNotFound?: boolean
   status?: 'success' | 'error' | 'info' | 'warning' | '403' | '404' | '500' | 403 | 404 | 500
   title?: string
   subTitle?: string

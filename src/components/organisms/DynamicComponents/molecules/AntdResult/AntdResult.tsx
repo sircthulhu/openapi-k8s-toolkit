@@ -22,6 +22,14 @@ const getDefaultTitle = (status: string | number) => {
   return 'Error'
 }
 
+/** Check whether the K8s list response for a given reqIndex has zero items. */
+const isEmptyK8sList = (multiQueryData: Record<string, unknown>, reqIndex: number): boolean => {
+  const reqData = multiQueryData[`req${reqIndex}`]
+  if (reqData == null || typeof reqData !== 'object') return false
+  const { items } = reqData as Record<string, unknown>
+  return Array.isArray(items) && items.length === 0
+}
+
 export const AntdResult: FC<{
   data: TDynamicComponentsAppTypeMap['antdResult']
   children?: any
@@ -42,24 +50,25 @@ export const AntdResult: FC<{
   if (typeof data.reqIndex === 'number') {
     const error = errors[data.reqIndex]
 
-    if (!error) {
+    // emptyAsNotFound: K8s list returned 200 but items is [] → treat as 404
+    const emptyListDetected = !error && data.emptyAsNotFound && isEmptyK8sList(multiQueryData, data.reqIndex)
+
+    if (!error && !emptyListDetected) {
       return children ?? null
     }
 
     const errorObj = error as TErrorWithResponse
-    const httpStatus = errorObj?.response?.status
+    const httpStatus = emptyListDetected ? 404 : errorObj?.response?.status
     const autoStatus = httpStatusToResultStatus(httpStatus)
-    const autoMessage = errorObj?.response?.statusText || errorObj?.message || String(error)
+    const autoMessage = emptyListDetected
+      ? 'The requested resource was not found'
+      : errorObj?.response?.statusText || errorObj?.message || String(error)
 
     const status = data.status ?? autoStatus
     const title = data.title ? parseAll({ text: data.title, replaceValues, multiQueryData }) : getDefaultTitle(status)
     const subTitle = data.subTitle ? parseAll({ text: data.subTitle, replaceValues, multiQueryData }) : autoMessage
 
-    return (
-      <Result status={status} title={title} subTitle={subTitle} style={data.style}>
-        {children}
-      </Result>
-    )
+    return <Result status={status} title={title} subTitle={subTitle} style={data.style} />
   }
 
   // Manual mode: no reqIndex → fully static/template-driven
