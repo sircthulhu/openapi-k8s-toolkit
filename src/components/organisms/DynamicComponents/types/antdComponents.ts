@@ -43,6 +43,7 @@ export type TAntdIconsProps = {
 
 export type TAntdResultProps = {
   id: number | string
+  reqIndex?: number
   status?: 'success' | 'error' | 'info' | 'warning' | '403' | '404' | '500' | 403 | 404 | 500
   title?: string
   subTitle?: string
