@@ -72,6 +72,13 @@ spec:
   gateways:
     - {{ $istio.gateway.name }}
   http:
+    - name: redirect-to-root
+      match:
+        - uri:
+            exact: {{ $expose.path }}
+      redirect:
+        uri: {{ $expose.path }}/
+        redirectCode: 302
     - name: main
       match:
         - uri:
