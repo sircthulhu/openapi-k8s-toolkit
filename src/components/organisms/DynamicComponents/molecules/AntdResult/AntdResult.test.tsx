@@ -91,7 +91,7 @@ describe('manual mode (no reqIndex)', () => {
 // ── Auto-detect mode (reqIndex provided) ───────────────────────
 
 describe('auto-detect mode (reqIndex)', () => {
-  it('renders children when request succeeded and data exists', () => {
+  it('renders children when request succeeded and data has items', () => {
     mockUseMultiQuery.mockReturnValue({
       data: { req0: { items: [{ metadata: { name: 'nginx' } }] } },
       isLoading: false,
@@ -108,7 +108,7 @@ describe('auto-detect mode (reqIndex)', () => {
     expect(screen.getByTestId('page-content')).toBeInTheDocument()
   })
 
-  it('renders null when no error and no children', () => {
+  it('renders null when no error, has items, and no children', () => {
     mockUseMultiQuery.mockReturnValue({
       data: { req0: { items: [{ metadata: { name: 'nginx' } }] } },
       isLoading: false,
@@ -169,10 +169,10 @@ describe('auto-detect mode (reqIndex)', () => {
   })
 })
 
-// ── emptyAsNotFound ────────────────────────────────────────────
+// ── checkEmpty (default: true) ────────────────────────────────
 
-describe('emptyAsNotFound', () => {
-  it('renders 404 Result when items is empty and flag is true', () => {
+describe('checkEmpty (default: true)', () => {
+  it('renders 404 Result when items is empty (default behavior)', () => {
     mockUseMultiQuery.mockReturnValue({
       data: { req0: { items: [] } },
       isLoading: false,
@@ -181,7 +181,7 @@ describe('emptyAsNotFound', () => {
     })
 
     render(
-      <AntdResult data={{ id: 'empty', reqIndex: 0, emptyAsNotFound: true }}>
+      <AntdResult data={{ id: 'empty-default', reqIndex: 0 }}>
         <div data-testid="should-not-render" />
       </AntdResult>,
     )
@@ -191,7 +191,7 @@ describe('emptyAsNotFound', () => {
     expect(screen.queryByTestId('should-not-render')).not.toBeInTheDocument()
   })
 
-  it('renders children when items is empty but flag is false', () => {
+  it('renders 404 Result when checkEmpty is explicitly true', () => {
     mockUseMultiQuery.mockReturnValue({
       data: { req0: { items: [] } },
       isLoading: false,
@@ -200,15 +200,16 @@ describe('emptyAsNotFound', () => {
     })
 
     render(
-      <AntdResult data={{ id: 'no-flag', reqIndex: 0, emptyAsNotFound: false }}>
-        <div data-testid="page-content">Should render</div>
+      <AntdResult data={{ id: 'empty-explicit', reqIndex: 0, checkEmpty: true }}>
+        <div data-testid="should-not-render" />
       </AntdResult>,
     )
 
-    expect(screen.getByTestId('page-content')).toBeInTheDocument()
+    expect(screen.getByText('Not Found')).toBeInTheDocument()
+    expect(screen.queryByTestId('should-not-render')).not.toBeInTheDocument()
   })
 
-  it('renders children when items is empty but flag is not set', () => {
+  it('renders children when items is empty but checkEmpty is false', () => {
     mockUseMultiQuery.mockReturnValue({
       data: { req0: { items: [] } },
       isLoading: false,
@@ -217,7 +218,7 @@ describe('emptyAsNotFound', () => {
     })
 
     render(
-      <AntdResult data={{ id: 'no-flag-default', reqIndex: 0 }}>
+      <AntdResult data={{ id: 'no-check', reqIndex: 0, checkEmpty: false }}>
         <div data-testid="page-content">Should render</div>
       </AntdResult>,
     )
@@ -225,7 +226,7 @@ describe('emptyAsNotFound', () => {
     expect(screen.getByTestId('page-content')).toBeInTheDocument()
   })
 
-  it('renders children when items has data and flag is true', () => {
+  it('renders children when items has data', () => {
     mockUseMultiQuery.mockReturnValue({
       data: { req0: { items: [{ metadata: { name: 'nginx' } }] } },
       isLoading: false,
@@ -234,7 +235,7 @@ describe('emptyAsNotFound', () => {
     })
 
     render(
-      <AntdResult data={{ id: 'has-data', reqIndex: 0, emptyAsNotFound: true }}>
+      <AntdResult data={{ id: 'has-data', reqIndex: 0 }}>
         <div data-testid="page-content">Pod exists</div>
       </AntdResult>,
     )
@@ -256,7 +257,6 @@ describe('emptyAsNotFound', () => {
         data={{
           id: 'custom-empty',
           reqIndex: 0,
-          emptyAsNotFound: true,
           status: 'warning',
           title: 'Pod {0} is not found',
           subTitle: 'Namespace: {1}',
@@ -268,7 +268,7 @@ describe('emptyAsNotFound', () => {
     expect(screen.getByText('Namespace: default')).toBeInTheDocument()
   })
 
-  it('prefers HTTP error over emptyAsNotFound when both apply', () => {
+  it('prefers HTTP error over empty check when both apply', () => {
     mockUseMultiQuery.mockReturnValue({
       data: { req0: { items: [] } },
       isLoading: false,
@@ -276,16 +276,90 @@ describe('emptyAsNotFound', () => {
       errors: [{ response: { status: 403, statusText: 'Forbidden' }, message: 'Forbidden' }],
     })
 
-    render(<AntdResult data={{ id: 'error-priority', reqIndex: 0, emptyAsNotFound: true }} />)
+    render(<AntdResult data={{ id: 'error-priority', reqIndex: 0 }} />)
 
     expect(screen.getByText('Access Denied')).toBeInTheDocument()
     expect(screen.getByText('Forbidden')).toBeInTheDocument()
   })
 })
 
-// ── isEmptyK8sList edge cases ──────────────────────────────────
+// ── Custom itemsPath ─────────────────────────────────────────
 
-describe('isEmptyK8sList edge cases', () => {
+describe('custom itemsPath', () => {
+  it('checks emptiness at a custom path (non-K8s API)', () => {
+    mockUseMultiQuery.mockReturnValue({
+      data: { req0: { data: { results: [] } } },
+      isLoading: false,
+      isError: false,
+      errors: [null],
+    })
+
+    render(
+      <AntdResult data={{ id: 'custom-path', reqIndex: 0, itemsPath: '.data.results' }}>
+        <div data-testid="should-not-render" />
+      </AntdResult>,
+    )
+
+    expect(screen.getByText('Not Found')).toBeInTheDocument()
+    expect(screen.queryByTestId('should-not-render')).not.toBeInTheDocument()
+  })
+
+  it('renders children when custom path has data', () => {
+    mockUseMultiQuery.mockReturnValue({
+      data: { req0: { data: { results: [{ id: 1 }] } } },
+      isLoading: false,
+      isError: false,
+      errors: [null],
+    })
+
+    render(
+      <AntdResult data={{ id: 'custom-path-ok', reqIndex: 0, itemsPath: '.data.results' }}>
+        <div data-testid="page-content">Has results</div>
+      </AntdResult>,
+    )
+
+    expect(screen.getByTestId('page-content')).toBeInTheDocument()
+  })
+
+  it('renders children when custom path does not exist in response', () => {
+    mockUseMultiQuery.mockReturnValue({
+      data: { req0: { something: 'else' } },
+      isLoading: false,
+      isError: false,
+      errors: [null],
+    })
+
+    render(
+      <AntdResult data={{ id: 'missing-path', reqIndex: 0, itemsPath: '.data.results' }}>
+        <div data-testid="page-content">Path not found in response</div>
+      </AntdResult>,
+    )
+
+    expect(screen.getByTestId('page-content')).toBeInTheDocument()
+  })
+
+  it('does not check default .items when custom path is set', () => {
+    mockUseMultiQuery.mockReturnValue({
+      data: { req0: { items: [], data: { results: [{ id: 1 }] } } },
+      isLoading: false,
+      isError: false,
+      errors: [null],
+    })
+
+    render(
+      <AntdResult data={{ id: 'custom-ignores-default', reqIndex: 0, itemsPath: '.data.results' }}>
+        <div data-testid="page-content">items is empty but we check results</div>
+      </AntdResult>,
+    )
+
+    // .items is empty, but we're checking .data.results which has data → children render
+    expect(screen.getByTestId('page-content')).toBeInTheDocument()
+  })
+})
+
+// ── isEmptyAtPath edge cases ─────────────────────────────────
+
+describe('isEmptyAtPath edge cases', () => {
   it.each([
     ['null reqData', { req0: null }],
     ['undefined reqData', {}],
@@ -302,7 +376,7 @@ describe('isEmptyK8sList edge cases', () => {
     })
 
     render(
-      <AntdResult data={{ id: 'edge', reqIndex: 0, emptyAsNotFound: true }}>
+      <AntdResult data={{ id: 'edge', reqIndex: 0 }}>
         <div data-testid="page-content">Should render</div>
       </AntdResult>,
     )

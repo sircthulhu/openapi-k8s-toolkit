@@ -22,12 +22,22 @@ const getDefaultTitle = (status: string | number) => {
   return 'Error'
 }
 
-/** Check whether the K8s list response for a given reqIndex has zero items. */
-const isEmptyK8sList = (multiQueryData: Record<string, unknown>, reqIndex: number): boolean => {
+/** Resolve a dot-separated path (e.g. ".items" or ".data.results") on an object. */
+const getValueByPath = (obj: Record<string, unknown>, path: string): unknown =>
+  path
+    .replace(/^\./, '')
+    .split('.')
+    .reduce<unknown>((current, key) => {
+      if (current == null || typeof current !== 'object') return undefined
+      return (current as Record<string, unknown>)[key]
+    }, obj)
+
+/** Check whether the response for a given reqIndex has an empty array at the specified path. */
+const isEmptyAtPath = (multiQueryData: Record<string, unknown>, reqIndex: number, path: string): boolean => {
   const reqData = multiQueryData[`req${reqIndex}`]
   if (reqData == null || typeof reqData !== 'object') return false
-  const { items } = reqData as Record<string, unknown>
-  return Array.isArray(items) && items.length === 0
+  const value = getValueByPath(reqData as Record<string, unknown>, path)
+  return Array.isArray(value) && value.length === 0
 }
 
 export const AntdResult: FC<{
@@ -50,8 +60,10 @@ export const AntdResult: FC<{
   if (typeof data.reqIndex === 'number') {
     const error = errors[data.reqIndex]
 
-    // emptyAsNotFound: K8s list returned 200 but items is [] → treat as 404
-    const emptyListDetected = !error && data.emptyAsNotFound && isEmptyK8sList(multiQueryData, data.reqIndex)
+    // checkEmpty (default: true): response has empty array at itemsPath → treat as 404
+    const shouldCheckEmpty = data.checkEmpty !== false
+    const itemsPath = data.itemsPath ?? '.items'
+    const emptyListDetected = !error && shouldCheckEmpty && isEmptyAtPath(multiQueryData, data.reqIndex, itemsPath)
 
     if (!error && !emptyListDetected) {
       return children ?? null
