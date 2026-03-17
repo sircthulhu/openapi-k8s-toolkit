@@ -357,30 +357,4 @@ describe('custom itemsPath', () => {
   })
 })
 
-// ── isEmptyAtPath edge cases ─────────────────────────────────
-
-describe('isEmptyAtPath edge cases', () => {
-  it.each([
-    ['null reqData', { req0: null }],
-    ['undefined reqData', {}],
-    ['non-object reqData', { req0: 'string-value' }],
-    ['reqData without items key', { req0: { metadata: {} } }],
-    ['items is not an array', { req0: { items: 'not-array' } }],
-    ['items is an object', { req0: { items: {} } }],
-  ])('renders children when data is %s', (_label, data) => {
-    mockUseMultiQuery.mockReturnValue({
-      data,
-      isLoading: false,
-      isError: false,
-      errors: [null],
-    })
-
-    render(
-      <AntdResult data={{ id: 'edge', reqIndex: 0 }}>
-        <div data-testid="page-content">Should render</div>
-      </AntdResult>,
-    )
-
-    expect(screen.getByTestId('page-content')).toBeInTheDocument()
-  })
-})
+// Edge cases for isEmptyAtPath are covered in utils.test.ts

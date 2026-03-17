@@ -5,6 +5,7 @@ import { TDynamicComponentsAppTypeMap } from '../../types'
 import { useMultiQuery } from '../../../DynamicRendererWithProviders/providers/hybridDataProvider'
 import { usePartsOfUrl } from '../../../DynamicRendererWithProviders/providers/partsOfUrlContext'
 import { parseAll } from '../utils'
+import { isEmptyAtPath } from './utils'
 
 type TErrorWithResponse = { response?: { status?: number; statusText?: string }; message?: string }
 
@@ -20,24 +21,6 @@ const getDefaultTitle = (status: string | number) => {
   if (status === '404') return 'Not Found'
   if (status === '500') return 'Server Error'
   return 'Error'
-}
-
-/** Resolve a dot-separated path (e.g. ".items" or ".data.results") on an object. */
-const getValueByPath = (obj: Record<string, unknown>, path: string): unknown =>
-  path
-    .replace(/^\./, '')
-    .split('.')
-    .reduce<unknown>((current, key) => {
-      if (current == null || typeof current !== 'object') return undefined
-      return (current as Record<string, unknown>)[key]
-    }, obj)
-
-/** Check whether the response for a given reqIndex has an empty array at the specified path. */
-const isEmptyAtPath = (multiQueryData: Record<string, unknown>, reqIndex: number, path: string): boolean => {
-  const reqData = multiQueryData[`req${reqIndex}`]
-  if (reqData == null || typeof reqData !== 'object') return false
-  const value = getValueByPath(reqData as Record<string, unknown>, path)
-  return Array.isArray(value) && value.length === 0
 }
 
 export const AntdResult: FC<{
