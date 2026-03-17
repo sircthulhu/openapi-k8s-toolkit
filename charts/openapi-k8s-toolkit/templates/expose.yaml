@@ -76,6 +76,8 @@ spec:
       match:
         - uri:
             prefix: {{ $expose.path }}
+      rewrite:
+        uri: /
       route:
         - destination:
             host: {{ include "openapi-k8s-toolkit.fullname" . }}
