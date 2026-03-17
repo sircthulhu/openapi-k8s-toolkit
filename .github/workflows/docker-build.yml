@@ -64,6 +64,8 @@ jobs:
           push: true
           provenance: false
           platforms: linux/amd64
+          build-args: |
+            STORYBOOK_BASE_PATH=/storybook/
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/openapi-k8s-toolkit:${{ steps.sanitize.outputs.branch }}-${{ steps.short-sha.outputs.sha }}
           cache-from: type=local,src=/tmp/.buildx-cache
