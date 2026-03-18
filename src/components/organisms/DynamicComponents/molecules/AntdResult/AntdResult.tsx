@@ -5,6 +5,7 @@ import { TDynamicComponentsAppTypeMap } from '../../types'
 import { useMultiQuery } from '../../../DynamicRendererWithProviders/providers/hybridDataProvider'
 import { usePartsOfUrl } from '../../../DynamicRendererWithProviders/providers/partsOfUrlContext'
 import { parseAll } from '../utils'
+import { isEmptyAtPath } from './utils'
 
 type TErrorWithResponse = { response?: { status?: number; statusText?: string }; message?: string }
 
@@ -42,24 +43,27 @@ export const AntdResult: FC<{
   if (typeof data.reqIndex === 'number') {
     const error = errors[data.reqIndex]
 
-    if (!error) {
+    // checkEmpty (default: true): response has empty array at itemsPath → treat as 404
+    const shouldCheckEmpty = data.checkEmpty !== false
+    const itemsPath = data.itemsPath ?? '.items'
+    const emptyListDetected = !error && shouldCheckEmpty && isEmptyAtPath(multiQueryData, data.reqIndex, itemsPath)
+
+    if (!error && !emptyListDetected) {
       return children ?? null
     }
 
     const errorObj = error as TErrorWithResponse
-    const httpStatus = errorObj?.response?.status
+    const httpStatus = emptyListDetected ? 404 : errorObj?.response?.status
     const autoStatus = httpStatusToResultStatus(httpStatus)
-    const autoMessage = errorObj?.response?.statusText || errorObj?.message || String(error)
+    const autoMessage = emptyListDetected
+      ? 'The requested resource was not found'
+      : errorObj?.response?.statusText || errorObj?.message || String(error)
 
     const status = data.status ?? autoStatus
     const title = data.title ? parseAll({ text: data.title, replaceValues, multiQueryData }) : getDefaultTitle(status)
     const subTitle = data.subTitle ? parseAll({ text: data.subTitle, replaceValues, multiQueryData }) : autoMessage
 
-    return (
-      <Result status={status} title={title} subTitle={subTitle} style={data.style}>
-        {children}
-      </Result>
-    )
+    return <Result status={status} title={title} subTitle={subTitle} style={data.style} />
   }
 
   // Manual mode: no reqIndex → fully static/template-driven

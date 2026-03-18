@@ -27,6 +27,7 @@ const meta: Meta<TArgs> = {
   argTypes: {
     id: { control: 'text', description: 'data.id' },
     reqIndex: { control: 'number', description: 'data.reqIndex — auto-detect error from this request index' },
+    emptyAsNotFound: { control: 'boolean', description: 'data.emptyAsNotFound — treat empty K8s list as 404' },
     status: {
       control: { type: 'select' },
       options: [undefined, 'success', 'error', 'info', 'warning', '403', '404', '500'],
@@ -60,6 +61,7 @@ const meta: Meta<TArgs> = {
             data={{
               id: args.id,
               reqIndex: args.reqIndex,
+              emptyAsNotFound: args.emptyAsNotFound,
               status: args.status,
               title: args.title,
               subTitle: args.subTitle,
@@ -78,6 +80,7 @@ const meta: Meta<TArgs> = {
           data: {
             id: args.id,
             ...(args.reqIndex !== undefined && { reqIndex: args.reqIndex }),
+            ...(args.emptyAsNotFound && { emptyAsNotFound: args.emptyAsNotFound }),
             ...(args.status && { status: args.status }),
             ...(args.title && { title: args.title }),
             ...(args.subTitle && { subTitle: args.subTitle }),
@@ -200,6 +203,34 @@ export const AutoDetectNoError: Story = {
     isError: false,
     errors: [null],
     multiQueryData: { req0: { metadata: { name: 'some-pod' } } },
+  },
+}
+
+export const EmptyAsNotFound: Story = {
+  name: 'emptyAsNotFound: empty K8s list treated as 404',
+  args: {
+    id: 'result-empty-list',
+    reqIndex: 0,
+    emptyAsNotFound: true,
+    status: undefined,
+    title: 'Pod {0} is not found',
+    subTitle: 'Namespace: {1}',
+    style: undefined,
+
+    isLoading: false,
+    isError: false,
+    errors: [null],
+    multiQueryData: { req0: { items: [] } },
+    partsOfUrl: ['nginx-missing-pod', 'default'],
+  },
+}
+
+export const EmptyAsNotFoundDisabled: Story = {
+  name: 'emptyAsNotFound: disabled — empty list renders children',
+  args: {
+    ...EmptyAsNotFound.args,
+    id: 'result-empty-list-disabled',
+    emptyAsNotFound: false,
   },
 }
 
