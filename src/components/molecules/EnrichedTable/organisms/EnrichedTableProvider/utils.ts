@@ -241,8 +241,13 @@ export const prepare = ({
                 return `['${escaped}']`
               })
             }
-            const jpQueryResult = jp.query(el, `$${resolvedJsonPath}`)
-            fieldValue = Array.isArray(jpQueryResult) && jpQueryResult.length === 1 ? jpQueryResult[0] : jpQueryResult
+            if (/_flatMap[^\]]+_Key/.test(resolvedJsonPath)) {
+              // Placeholder was not resolved (row not yet expanded or key missing) — skip query
+              fieldValue = null
+            } else {
+              const jpQueryResult = jp.query(el, `$${resolvedJsonPath}`)
+              fieldValue = Array.isArray(jpQueryResult) && jpQueryResult.length === 1 ? jpQueryResult[0] : jpQueryResult
+            }
           }
 
           newFieldsForComplexJsonPath[dataIndex] = fieldValue
